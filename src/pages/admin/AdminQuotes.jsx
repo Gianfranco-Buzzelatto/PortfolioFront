@@ -116,10 +116,6 @@ export default function AdminQuotes() {
       setGeneratingAi(false)
     }
   }
-    } finally {
-      setStarting(false)
-    }
-  }
 
   const load = () => {
     setLoading(true)
