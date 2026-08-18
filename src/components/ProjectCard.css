@@ -79,6 +79,24 @@
   text-transform: uppercase;
 }
 
+.project-card__demo-tag {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(8, 8, 8, 0.75);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .project-card__body {
   padding: 22px;
   flex: 1;
@@ -121,4 +139,19 @@
   color: var(--text-muted);
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
+}
+
+.project-card__demo-link {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: gap 0.2s;
+}
+
+.project-card__demo-link:hover {
+  gap: 10px;
 }

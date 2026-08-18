@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    Promise.all([api.get('/projects'), api.get('/quotes')])
+    Promise.all([api.get('/projects/admin/all'), api.get('/quotes')])
       .then(([p, q]) => { setProjects(p.data); setQuotes(q.data) })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -73,7 +73,7 @@ export default function Dashboard() {
                           </td>
                           <td><span className="tag">{q.projectType}</span></td>
                           <td className="text-primary fw-bold">
-                            {q.estimatedPrice ? `$${q.estimatedPrice.toLocaleString()}` : '-'}
+                            {q.finalPrice ? `$${q.finalPrice.toLocaleString()}` : '-'}
                           </td>
                           <td>
                             <span className="dash-badge" style={{ background: statusColor[q.status] + '22', color: statusColor[q.status] }}>

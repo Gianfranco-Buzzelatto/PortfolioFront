@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { SettingsProvider } from './context/SettingsContext'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -11,6 +12,10 @@ import AdminDashboard from './pages/admin/Dashboard'
 import AdminProjects from './pages/admin/AdminProjects'
 import AdminQuotes from './pages/admin/AdminQuotes'
 import AdminSettings from './pages/admin/AdminSettings'
+import AdminClients from './pages/admin/AdminClients'
+import ProjectDemo from './pages/demos/ProjectDemo'
+import ScrollToHash from './components/ScrollToHash'
+import WhatsAppFloat from './components/WhatsAppFloat'
 
 const adminEnabled = import.meta.env.VITE_ENABLE_ADMIN === 'true'
 
@@ -32,6 +37,7 @@ function PublicLayout({ children }) {
       <Navbar />
       {children}
       <Footer />
+      <WhatsAppFloat />
     </>
   )
 }
@@ -39,11 +45,14 @@ function PublicLayout({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <SettingsProvider>
       <BrowserRouter>
+        <ScrollToHash />
         <Routes>
           <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
           <Route path="/proyectos" element={<PublicLayout><Projects /></PublicLayout>} />
           <Route path="/cotizar" element={<PublicLayout><Quote /></PublicLayout>} />
+          <Route path="/demo/:slug" element={<ProjectDemo />} />
 
           {adminEnabled && (
             <>
@@ -51,6 +60,7 @@ export default function App() {
               <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
               <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
               <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
+              <Route path="/admin/clientes" element={<PrivateRoute><AdminClients /></PrivateRoute>} />
               <Route path="/admin/configuracion" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
             </>
           )}
@@ -58,6 +68,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </SettingsProvider>
     </AuthProvider>
   )
 }

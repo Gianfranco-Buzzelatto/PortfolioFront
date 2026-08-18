@@ -1,0 +1,123 @@
+.demo-layout {
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #f5f5f5;
+}
+
+.demo-layout__bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(8, 8, 8, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.demo-layout__bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.demo-layout__back {
+  color: #ccc;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+}
+
+.demo-layout__back:hover {
+  color: #fff;
+}
+
+.demo-layout__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-layout__badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e8141e;
+  border: 1px solid rgba(232, 20, 30, 0.4);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.demo-layout__client {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.demo-layout__intro {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 8px;
+}
+
+.demo-layout__intro h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin: 0 0 8px;
+}
+
+.demo-layout__intro p {
+  margin: 0;
+  color: #999;
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+.demo-layout__frame {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
+}
+
+.demo-layout__cta {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111;
+  padding: 48px 24px 64px;
+}
+
+.demo-layout__cta-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.demo-layout__cta h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
+.demo-layout__cta p {
+  margin: 0 0 24px;
+  color: #999;
+}
+
+.demo-layout__cta-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .demo-layout__bar-inner,
+  .demo-layout__intro,
+  .demo-layout__frame,
+  .demo-layout__cta {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

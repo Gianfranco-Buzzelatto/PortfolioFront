@@ -7,6 +7,7 @@ const navItems = [
   { to: '/admin',                icon: 'fa-tachometer-alt', label: 'Dashboard' },
   { to: '/admin/proyectos',      icon: 'fa-folder-open',    label: 'Proyectos' },
   { to: '/admin/cotizaciones',   icon: 'fa-file-invoice',   label: 'Cotizaciones' },
+  { to: '/admin/clientes',       icon: 'fa-users',          label: 'Clientes' },
   { to: '/admin/configuracion',  icon: 'fa-cog',            label: 'Configuración' },
 ]
 

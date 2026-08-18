@@ -5,7 +5,7 @@ import './AdminProjects.css'
 
 const EMPTY = {
   title: '', description: '', longDescription: '', technologies: '',
-  category: 'web', imageUrl: '', liveUrl: '', githubUrl: '', featured: false, order: 0
+  category: 'web', imageUrl: '', demoUrl: '', liveUrl: '', githubUrl: '', featured: false, order: 0
 }
 
 const CATEGORIES = ['web','mobile','design','backend','fullstack','otro']
@@ -31,7 +31,7 @@ export default function AdminProjects() {
 
   const load = () => {
     setLoading(true)
-    api.get('/projects').then(r => setProjects(r.data)).finally(() => setLoading(false))
+    api.get('/projects/admin/all').then(r => setProjects(r.data)).finally(() => setLoading(false))
   }
   useEffect(load, [])
 
@@ -209,6 +209,11 @@ export default function AdminProjects() {
               <div className="form-group">
                 <label className="form-label">URL de imagen</label>
                 <input className="form-control" value={form.imageUrl} onChange={e => set('imageUrl', e.target.value)} placeholder="https://..." />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">URL demo</label>
+                <input className="form-control" value={form.demoUrl} onChange={e => set('demoUrl', e.target.value)} placeholder="/demo/mi-proyecto o https://..." />
               </div>
 
               <div className="grid-2">

@@ -1,0 +1,229 @@
+/* ── AdminClients.css ─────────────────────────────────────────────────────── */
+/* Reutiliza las mismas variables CSS del proyecto (--primary, --border, etc.) */
+
+/* ── HEADER ──────────────────────────────────────────────────────────────── */
+.clients-header { margin-bottom: 24px; }
+
+/* Reutiliza .filter-tabs y .filter-tab de AdminQuotes.css */
+.stage-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+.clients-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── LIST ────────────────────────────────────────────────────────────────── */
+.clients-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+.client-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.client-item:hover { background: var(--bg-card-hover); }
+.client-item--active { background: var(--primary-muted); border-left: 3px solid var(--primary); }
+.client-item:last-child { border-bottom: none; }
+
+.client-item__top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.client-item__avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-weight: 700; font-size: 0.88rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.client-item__name  { font-weight: 600; color: var(--text); font-size: 0.88rem; margin: 0; }
+.client-item__email { font-size: 0.72rem; color: var(--text-muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client-item__bottom { display: flex; align-items: center; gap: 8px; }
+.client-item__price { font-weight: 700; color: var(--primary); font-size: 0.82rem; margin-left: auto; }
+
+/* ── DETAIL ──────────────────────────────────────────────────────────────── */
+.client-detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: sticky;
+  top: 88px;
+}
+.client-detail--empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px; color: var(--text-faint); text-align: center; gap: 16px;
+}
+.client-detail--empty i { font-size: 3rem; color: var(--primary); opacity: 0.3; }
+
+.client-detail__header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.client-detail__client { display: flex; align-items: center; gap: 12px; }
+.client-detail__avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-weight: 700; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.client-detail__client h2 { font-size: 1rem; color: var(--text); margin: 0; }
+.client-detail__client a  { font-size: 0.82rem; color: var(--primary); }
+
+/* ── STAGE PROGRESS BAR ──────────────────────────────────────────────────── */
+.stage-progress-bar {
+  display: flex;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  gap: 0;
+  overflow-x: auto;
+}
+.spb-step {
+  display: flex; align-items: center; gap: 7px;
+  flex: 1; min-width: 0;
+  font-size: 0.75rem; color: var(--text-faint);
+  position: relative;
+}
+.spb-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 13px;
+  width: calc(100% - 90px);
+  height: 1px;
+  background: var(--border);
+}
+.spb-done::after, .spb-current::after { background: var(--primary) !important; }
+.spb-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg-card); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700; color: var(--text-faint);
+  flex-shrink: 0; z-index: 1; transition: 0.2s;
+}
+.spb-done .spb-dot { color: #fff; border-color: transparent; }
+.spb-current .spb-dot { color: #fff; border-color: transparent; }
+.spb-current { color: var(--text); font-weight: 600; }
+.spb-done    { color: var(--text-muted); }
+
+/* ── BODY ────────────────────────────────────────────────────────────────── */
+.client-detail__body { padding: 22px 24px; max-height: calc(100vh - 320px); overflow-y: auto; }
+
+.client-detail__grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; margin-bottom: 20px;
+}
+.client-detail__field label {
+  display: block; font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint); margin-bottom: 3px;
+}
+.client-detail__field span { font-size: 0.88rem; color: var(--text); font-weight: 500; }
+
+.client-detail__section { margin-bottom: 20px; }
+.client-detail__section > label {
+  display: block; font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint); margin-bottom: 8px;
+}
+
+/* ── URL ROW ─────────────────────────────────────────────────────────────── */
+.url-row { display: flex; gap: 8px; flex-direction: column; }
+.url-input { font-size: 0.82rem !important; }
+
+/* ── TAREAS ──────────────────────────────────────────────────────────────── */
+.tasks-list {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.task-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--text-muted);
+}
+.task-row:last-child { border-bottom: none; }
+.task-arrow { color: var(--primary); font-size: 0.7rem; margin-top: 3px; flex-shrink: 0; }
+
+/* ── DOCUMENTOS ──────────────────────────────────────────────────────────── */
+.docs-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.doc-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: var(--radius-pill);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: var(--transition); font-family: var(--font-body);
+  border: 1.5px solid;
+}
+.doc-btn--pdf {
+  border-color: var(--primary); color: var(--primary); background: transparent;
+}
+.doc-btn--pdf:hover { background: var(--primary-muted); }
+.doc-btn--email {
+  border-color: var(--border-strong); color: var(--text-muted); background: transparent;
+}
+.doc-btn--email:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── REVISIONES ──────────────────────────────────────────────────────────── */
+.rev-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); margin-bottom: 5px;
+  gap: 12px;
+}
+.rev-desc { font-size: 0.82rem; color: var(--text); flex: 1; }
+.rev-status {
+  font-size: 0.72rem; font-weight: 700; padding: 2px 10px;
+  border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+}
+.rev-aprobado          { background: #e8f5e9; color: #2e7d32; }
+.rev-fuera-de-alcance  { background: #fce4ec; color: #c62828; }
+.rev-pendiente         { background: #fff3e0; color: #e65100; }
+
+.rev-form {
+  display: flex; gap: 8px; margin-top: 10px;
+  align-items: center; flex-wrap: wrap;
+}
+.rev-form .form-control { flex: 1; min-width: 160px; }
+.rev-form select.form-control { flex: 0 0 160px; }
+
+/* ── MANTENIMIENTO ───────────────────────────────────────────────────────── */
+.maint-info {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--primary-muted);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-weight: 700; color: var(--primary);
+  font-size: 1rem;
+}
+.maint-form { margin-top: 10px; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .clients-layout { grid-template-columns: 1fr; }
+  .client-detail { position: static; }
+  .clients-list { max-height: 360px; }
+}
+@media (max-width: 600px) {
+  .client-detail__grid { grid-template-columns: 1fr; }
+  .docs-grid { flex-direction: column; }
+  .stage-progress-bar { gap: 4px; }
+  .spb-step span { display: none; }
+}

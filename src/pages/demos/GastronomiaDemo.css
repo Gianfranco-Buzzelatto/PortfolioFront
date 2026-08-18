@@ -1,0 +1,184 @@
+.gastro-demo {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 520px;
+}
+
+.gastro-demo__sidebar {
+  background: #161616;
+  padding: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gastro-demo__sidebar h3 {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+}
+
+.gastro-demo__tables {
+  display: grid;
+  gap: 8px;
+}
+
+.gastro-demo__table {
+  text-align: left;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #eee;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+}
+
+.gastro-demo__table small { color: #777; font-size: 0.75rem; }
+.gastro-demo__table em { font-style: normal; font-size: 0.72rem; color: #aaa; }
+
+.gastro-demo__table--ocupada { border-color: rgba(255, 193, 7, 0.35); }
+.gastro-demo__table--cuenta { border-color: rgba(232, 20, 30, 0.45); }
+.gastro-demo__table--active { outline: 2px solid #e8141e; }
+
+.gastro-demo__stats {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.gastro-demo__stats div {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.gastro-demo__stats strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.gastro-demo__stats span {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.gastro-demo__main {
+  padding: 24px;
+}
+
+.gastro-demo__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.gastro-demo__header h2 { margin: 0; font-size: 1.4rem; }
+.gastro-demo__header p { margin: 4px 0 0; color: #888; font-size: 0.9rem; }
+
+.gastro-demo__pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gastro-demo__pill--ocupada { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.gastro-demo__pill--cuenta { background: rgba(232, 20, 30, 0.15); color: #ff6b6b; }
+.gastro-demo__pill--libre { background: rgba(40, 167, 69, 0.15); color: #5dd879; }
+
+.gastro-demo__grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+}
+
+.gastro-demo__menu,
+.gastro-demo__order {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.gastro-demo__menu h4,
+.gastro-demo__order h4 {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+}
+
+.gastro-demo__menu-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #222;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  color: #eee;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.gastro-demo__menu-item:hover {
+  border-color: rgba(232, 20, 30, 0.4);
+  background: #262626;
+}
+
+.gastro-demo__order ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gastro-demo__order li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
+}
+
+.gastro-demo__empty {
+  color: #666;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.gastro-demo__order footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 12px;
+}
+
+.gastro-demo__btn {
+  background: #e8141e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .gastro-demo { grid-template-columns: 1fr; }
+  .gastro-demo__grid { grid-template-columns: 1fr; }
+}

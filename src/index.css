@@ -130,6 +130,19 @@ img { max-width: 100%; display: block; }
   transform: translateY(-2px);
 }
 
+.btn-whatsapp {
+  background: #25d366;
+  color: #fff;
+  border-color: #25d366;
+}
+.btn-whatsapp:hover {
+  background: #20bd5a;
+  border-color: #20bd5a;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
+}
+
 .btn-sm { padding: 8px 18px; font-size: 0.8rem; }
 .btn-danger { background: #dc3545; color: white; border-color: #dc3545; }
 .btn-danger:hover { background: #b02a37; }

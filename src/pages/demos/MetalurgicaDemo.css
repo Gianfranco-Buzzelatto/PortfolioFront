@@ -1,0 +1,154 @@
+.metal-demo {
+  background: #0f1419;
+  color: #e8eaed;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metal-demo__hero {
+  position: relative;
+  min-height: 280px;
+  background:
+    linear-gradient(135deg, rgba(15, 20, 25, 0.85), rgba(15, 20, 25, 0.6)),
+    url('https://images.unsplash.com/photo-1565043589221-1a6fd9ae45c7?w=1200&q=80') center/cover;
+}
+
+.metal-demo__hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 48px 32px;
+  max-width: 560px;
+}
+
+.metal-demo__hero-content p {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8fa3b8;
+}
+
+.metal-demo__hero-content h2 {
+  margin: 0 0 20px;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1.25;
+}
+
+.metal-demo__cta {
+  background: #c45c26;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.metal-demo__services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.metal-demo__services article {
+  background: #121820;
+  padding: 28px 24px;
+}
+
+.metal-demo__services i {
+  font-size: 1.4rem;
+  color: #c45c26;
+  margin-bottom: 12px;
+}
+
+.metal-demo__services h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.metal-demo__services p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8fa3b8;
+  line-height: 1.5;
+}
+
+.metal-demo__contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 32px;
+}
+
+.metal-demo__contact h3 {
+  margin: 0 0 8px;
+}
+
+.metal-demo__contact > div > p {
+  color: #8fa3b8;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.metal-demo__contact ul {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.metal-demo__contact li {
+  font-size: 0.85rem;
+  color: #b0bec5;
+  margin-bottom: 8px;
+}
+
+.metal-demo__contact li i {
+  color: #c45c26;
+  margin-right: 8px;
+}
+
+.metal-demo__contact form {
+  display: grid;
+  gap: 10px;
+}
+
+.metal-demo__contact input,
+.metal-demo__contact textarea {
+  background: #1a222d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font: inherit;
+}
+
+.metal-demo__contact button[type="submit"] {
+  background: #c45c26;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.metal-demo__success {
+  background: rgba(40, 167, 69, 0.12);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.metal-demo__success i {
+  font-size: 2rem;
+  color: #5dd879;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .metal-demo__services { grid-template-columns: 1fr; }
+  .metal-demo__contact { grid-template-columns: 1fr; }
+}

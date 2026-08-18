@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './ProjectCard.css'
 
 const categoryLabels = {
@@ -5,7 +6,13 @@ const categoryLabels = {
   backend: 'Backend', fullstack: 'Full Stack', otro: 'Otro'
 }
 
+function isInternalDemo(url) {
+  return url && url.startsWith('/demo/')
+}
+
 export default function ProjectCard({ project, delay = 0 }) {
+  const demoLink = project.demoUrl || (isInternalDemo(project.liveUrl) ? project.liveUrl : null)
+
   return (
     <article
       className="project-card animate-fadeInUp"
@@ -13,26 +20,33 @@ export default function ProjectCard({ project, delay = 0 }) {
     >
       <div className="project-card__image">
         {project.imageUrl
-          ? <img src={project.imageUrl} alt={project.title} />
+          ? <img src={project.imageUrl} alt={project.title} loading="lazy" />
           : <div className="project-card__placeholder">
               <i className="fas fa-code"></i>
             </div>
         }
         <div className="project-card__overlay">
           <div className="project-card__actions">
-            {project.liveUrl && (
-              <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
-                <i className="fas fa-external-link-alt" /> Ver sitio
-              </a>
+            {demoLink && (
+              isInternalDemo(demoLink) ? (
+                <Link to={demoLink} className="btn btn-primary btn-sm">
+                  <i className="fas fa-play" /> Ver demo
+                </Link>
+              ) : (
+                <a href={demoLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
+                  <i className="fas fa-play" /> Ver demo
+                </a>
+              )
             )}
-            {project.githubUrl && (
-              <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">
-                <i className="fab fa-github" /> Repositorio
+            {project.liveUrl && !isInternalDemo(project.liveUrl) && (
+              <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">
+                <i className="fas fa-external-link-alt" /> Ver sitio
               </a>
             )}
           </div>
         </div>
         {project.featured && <span className="project-card__badge">Caso destacado</span>}
+        {demoLink && <span className="project-card__demo-tag"><i className="fas fa-play" /> Demo</span>}
       </div>
 
       <div className="project-card__body">
@@ -48,6 +62,17 @@ export default function ProjectCard({ project, delay = 0 }) {
               <span className="project-card__tech">+{project.technologies.length - 4}</span>
             )}
           </div>
+        )}
+        {demoLink && (
+          isInternalDemo(demoLink) ? (
+            <Link to={demoLink} className="project-card__demo-link">
+              Probar demo interactiva <i className="fas fa-arrow-right" />
+            </Link>
+          ) : (
+            <a href={demoLink} target="_blank" rel="noopener noreferrer" className="project-card__demo-link">
+              Ver demo en vivo <i className="fas fa-arrow-right" />
+            </a>
+          )
         )}
       </div>
     </article>
