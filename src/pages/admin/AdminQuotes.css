@@ -171,6 +171,21 @@
 .wizard__title { font-size: 1.1rem; color: var(--text); margin: 0; }
 .wizard__sub   { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
 
+.wizard-ai-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 28px;
+  padding: 12px 14px;
+  background: var(--primary-muted);
+  border: 1px solid rgba(232, 20, 30, 0.28);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.wizard-ai-banner i { color: var(--primary); margin-top: 2px; }
+
 /* Progress steps */
 .wizard__progress {
   display: flex; align-items: center;

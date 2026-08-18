@@ -107,11 +107,13 @@ export default function AdminQuotes() {
     setGeneratingAi(true)
     try {
       const res = await api.post(`/quotes/${quote._id}/generate-ai`, {}, { timeout: 45000 })
-      setSelected(res.data)
-      notify('Propuesta del agente lista ✓')
+      const draft = res.data
+      setSelected(draft)
+      notify('Borrador del asistente listo. Revisalo y guardá para aprobarlo.')
       load()
+      openWizard(draft)
     } catch {
-      notify('No pude generar la propuesta con IA')
+      notify('No pude armar el borrador con el asistente')
     } finally {
       setGeneratingAi(false)
     }
@@ -476,8 +478,9 @@ export default function AdminQuotes() {
                   className="btn btn-outline btn-sm"
                   onClick={() => generateWithAi(selected)}
                   disabled={generatingAi}
+                  title="Arma un borrador según el brief. Vos lo revisás y lo aprobás antes de enviarlo."
                 >
-                  <i className="fas fa-robot" /> {generatingAi ? 'Generando…' : selected.aiProposal ? 'Regenerar con IA' : 'Armar con IA'}
+                  <i className="fas fa-robot" /> {generatingAi ? 'Armando borrador…' : selected.aiProposal ? 'Regenerar borrador' : 'Asistente: armar borrador'}
                 </button>
                 {selected.finalPrice && (
                   <button className="btn btn-outline btn-sm" onClick={() => generatePDF({ ...selected }, settings)}>
@@ -545,7 +548,7 @@ export default function AdminQuotes() {
 
               {selected.aiProposal && (
                 <div className="quote-detail__section">
-                  <label>Propuesta del agente</label>
+                  <label>Borrador del asistente (interno — no enviado al cliente)</label>
                   <p><strong>{selected.aiProposal.headline}</strong></p>
                   {selected.aiProposal.whyItFits && <p>{selected.aiProposal.whyItFits}</p>}
                   {selected.aiProposal.howItWorks && (
@@ -564,6 +567,9 @@ export default function AdminQuotes() {
                       </ul>
                     </>
                   )}
+                  <p style={{ marginTop: 12, fontSize: '0.82rem', color: 'var(--text-faint)' }}>
+                    Revisá el wizard, ajustá lo que haga falta y guardá. Recién ahí queda cotizado para enviar.
+                  </p>
                 </div>
               )}
 
@@ -625,6 +631,15 @@ export default function AdminQuotes() {
               </div>
               <button className="modal__close" onClick={closeWizard}><i className="fas fa-times" /></button>
             </div>
+
+            {selected.aiProposal && (
+              <div className="wizard-ai-banner">
+                <i className="fas fa-robot" />
+                <span>
+                  Borrador del asistente según el brief. Revisá precios y texto. Guardar aprueba la cotización; el cliente no ve nada hasta que la envíes.
+                </span>
+              </div>
+            )}
 
             {/* Progress */}
             <div className="wizard__progress">
