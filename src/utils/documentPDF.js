@@ -10,6 +10,20 @@ const today = () =>
 
 const docNumber = () => String(Date.now()).slice(-6)
 
+/**
+ * Escapa cualquier dato que venga del cliente, del admin o del agente de IA
+ * antes de interpolarlo en el HTML del PDF. El HTML se monta en el DOM para
+ * capturarlo, así que sin esto un lead puede ejecutar JS en el panel.
+ * Sólo el parámetro `content` de baseHTML queda sin escapar: es markup ya armado.
+ */
+export const esc = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
 // ── HTML base compartido por todos los documentos ────────────────────────────
 export function baseHTML({
   clientName,
@@ -31,7 +45,7 @@ export function baseHTML({
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>${docLabel} — ${clientName}</title>
+  <title>${esc(docLabel)} — ${esc(clientName)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -141,26 +155,26 @@ export function baseHTML({
     <header class="header-main">
       <div>
         <div class="brand-logo"><span class="gb">GB</span><span class="dot">.</span><span class="dev">Dev</span></div>
-        <div class="brand-sub">${settings.title || 'Desarrollador Web Full Stack'}</div>
+        <div class="brand-sub">${esc(settings.title || 'Desarrollador Web Full Stack')}</div>
       </div>
       <div class="doc-meta-header">
-        <div class="doc-label">${docLabel}</div>
-        <div class="doc-date">${headerSub}</div>
-        <div class="doc-num">#${docNum}</div>
+        <div class="doc-label">${esc(docLabel)}</div>
+        <div class="doc-date">${esc(headerSub)}</div>
+        <div class="doc-num">#${esc(docNum)}</div>
       </div>
     </header>
     <div class="accent-bar"></div>
     <main class="body-cell">
       <div class="info-grid">
         <div class="info-block">
-          <div class="label">${left.label}</div>
-          <div class="value">${left.value}</div>
-          ${left.sub ? `<div class="sub">${left.sub}</div>` : ''}
+          <div class="label">${esc(left.label)}</div>
+          <div class="value">${esc(left.value)}</div>
+          ${left.sub ? `<div class="sub">${esc(left.sub)}</div>` : ''}
         </div>
         <div class="info-block">
-          <div class="label">${right.label}</div>
-          <div class="value">${right.value}</div>
-          ${right.sub ? `<div class="sub">${right.sub}</div>` : ''}
+          <div class="label">${esc(right.label)}</div>
+          <div class="value">${esc(right.value)}</div>
+          ${right.sub ? `<div class="sub">${esc(right.sub)}</div>` : ''}
         </div>
       </div>
       ${content}
@@ -168,17 +182,17 @@ export function baseHTML({
       <div class="signature-row">
         <div class="sig-block">
           <div class="sig-label">Firma del cliente</div>
-          <div class="sig-name">${clientName}</div>
+          <div class="sig-name">${esc(clientName)}</div>
         </div>
         <div class="sig-block">
           <div class="sig-label">Firma del desarrollador</div>
-          <div class="sig-name">${settings.name || 'GB.Dev'}</div>
+          <div class="sig-name">${esc(settings.name || 'GB.Dev')}</div>
         </div>
       </div>` : ''}
     </main>
     <footer class="footer-bar">
-      <div class="footer-brand">GB<span class="dot">.</span>Dev${settings.name ? ` — ${settings.name}` : ''}</div>
-      <div class="footer-contact">${settings.email || ''}${settings.location ? `<br>${settings.location}` : ''}</div>
+      <div class="footer-brand">GB<span class="dot">.</span>Dev${settings.name ? ` — ${esc(settings.name)}` : ''}</div>
+      <div class="footer-contact">${esc(settings.email || '')}${settings.location ? `<br>${esc(settings.location)}` : ''}</div>
     </footer>
   </div>
 </body></html>`
@@ -210,26 +224,26 @@ export function buildBriefHTML(quote, settings = {}) {
         ['Éxito / KPI', quote.successMetric || 'A definir en discovery'],
       ].map(([k, v]) => `
         <div class="item-row">
-          <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
-          <span style="color:#555;">${v}</span>
+          <span class="item-name" style="font-weight:600;color:#333;">${esc(k)}</span>
+          <span style="color:#555;">${esc(v)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">
       <div class="section-title">Descripción del proyecto</div>
-      <p>${quote.description || 'Sin descripción provista por el cliente.'}</p>
+      <p>${esc(quote.description || 'Sin descripción provista por el cliente.')}</p>
     </div>
     ${quote.outOfScope ? `
     <div class="content-section">
       <div class="section-title">Fuera de alcance (esta etapa)</div>
-      <p>${quote.outOfScope}</p>
+      <p>${esc(quote.outOfScope)}</p>
     </div>` : ''}
     ${hasNeeds ? `
     <div class="content-section">
       <div class="section-title">Necesidades extra</div>
       ${needsRows.map(([k, v]) => `
         <div class="item-row">
-          <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
-          <span style="color:#555;">${v}</span>
+          <span class="item-name" style="font-weight:600;color:#333;">${esc(k)}</span>
+          <span style="color:#555;">${esc(v)}</span>
         </div>`).join('')}
     </div>` : ''}
     <div class="content-section">
@@ -244,11 +258,11 @@ export function buildBriefHTML(quote, settings = {}) {
         '¿Hay integraciones con sistemas existentes (CRM, ERP, etc.)?',
         '¿Cuáles son los KPIs de éxito del proyecto?',
         '¿Qué queda explícitamente fuera de esta etapa?',
-      ].map(q => `<div class="item-row"><span class="item-name">→ ${q}</span></div>`).join('')}
+      ].map(q => `<div class="item-row"><span class="item-name">→ ${esc(q)}</span></div>`).join('')}
     </div>
     <div class="content-section">
       <div class="section-title">Notas de la consulta inicial</div>
-      <p>${quote.adminNotes || quote.description || 'Sin notas aún.'}</p>
+      <p>${esc(quote.adminNotes || quote.description || 'Sin notas aún.')}</p>
     </div>
   `
   return baseHTML({ docLabel: 'Brief de descubrimiento', clientName: quote.clientName, docNum: docNumber(), content, settings })
@@ -265,19 +279,19 @@ export function buildAgreementHTML(quote, settings = {}) {
   const pay1 = Math.round(total * 0.4)
   const pay2 = Math.round(total * 0.3)
   const pay3 = Math.round(total * 0.3)
-  const featuresList = (quote.features || []).map(f => `<li>${f.name}</li>`).join('')
+  const featuresList = (quote.features || []).map(f => `<li>${esc(f.name)}</li>`).join('')
   const content = `
     <div class="highlight-box">
       <div class="hl-label">Valor total del proyecto</div>
-      <div class="hl-value">${sym}${total.toLocaleString('es-AR')} ${quote.currency || 'USD'}</div>
+      <div class="hl-value">${sym}${total.toLocaleString('es-AR')} ${esc(quote.currency || 'USD')}</div>
       <div class="hl-sub">40% al arrancar (${sym}${pay1.toLocaleString('es-AR')}) · 30% a mitad (${sym}${pay2.toLocaleString('es-AR')}) · 30% al entregar (${sym}${pay3.toLocaleString('es-AR')})</div>
     </div>
     <div class="content-section">
       <div class="section-title">Alcance del proyecto</div>
-      <p><strong>Proyecto:</strong> ${quote.projectName || quote.projectType}</p>
-      <p><strong>Tipo:</strong> ${quote.projectType}</p>
-      <p><strong>Plazo estimado de entrega:</strong> ${quote.deadline || 30} días hábiles desde el pago del adelanto.</p>
-      <p><strong>Rondas de revisión incluidas:</strong> ${quote.revisions || 3}. Las revisiones adicionales se presupuestan por separado.</p>
+      <p><strong>Proyecto:</strong> ${esc(quote.projectName || quote.projectType)}</p>
+      <p><strong>Tipo:</strong> ${esc(quote.projectType)}</p>
+      <p><strong>Plazo estimado de entrega:</strong> ${esc(quote.deadline || 30)} días hábiles desde el pago del adelanto.</p>
+      <p><strong>Rondas de revisión incluidas:</strong> ${esc(quote.revisions || 3)}. Las revisiones adicionales se presupuestan por separado.</p>
     </div>
     ${featuresList ? `
     <div class="content-section">
@@ -297,7 +311,7 @@ export function buildAgreementHTML(quote, settings = {}) {
         </div>
         <div class="term-item">
           <div class="term-title">Revisiones</div>
-          <div class="term-text">Se incluyen ${quote.revisions || 3} rondas de revisión. Cambios estructurales fuera de alcance se presupuestan aparte.</div>
+          <div class="term-text">Se incluyen ${esc(quote.revisions || 3)} rondas de revisión. Cambios estructurales fuera de alcance se presupuestan aparte.</div>
         </div>
         <div class="term-item">
           <div class="term-title">Propiedad intelectual</div>
@@ -335,15 +349,15 @@ export function buildRevisionsHTML(client, revisions = [], settings = {}) {
 
   const renderRows = (list) => list.map(r => `
     <div class="item-row">
-      <span class="item-name">${r.description}</span>
-      <span class="item-status ${statusMap[r.status]?.[0] || 'status-pending'}">${statusMap[r.status]?.[1] || r.status}</span>
+      <span class="item-name">${esc(r.description)}</span>
+      <span class="item-status ${statusMap[r.status]?.[0] || 'status-pending'}">${esc(statusMap[r.status]?.[1] || r.status)}</span>
     </div>`).join('')
 
   const content = `
     <div class="highlight-box">
       <div class="hl-label">Proyecto</div>
-      <div class="hl-value" style="font-size:18px;">${client.projectType}</div>
-      <div class="hl-sub">Revisiones usadas: ${client.revisionsUsed || revisions.length} de ${client.revisions || '—'} incluidas · URL staging: ${client.stagingUrl || 'pendiente'}</div>
+      <div class="hl-value" style="font-size:18px;">${esc(client.projectType)}</div>
+      <div class="hl-sub">Revisiones usadas: ${esc(client.revisionsUsed || revisions.length)} de ${esc(client.revisions || '—')} incluidas · URL staging: ${esc(client.stagingUrl || 'pendiente')}</div>
     </div>
     ${approved.length > 0 ? `
     <div class="content-section">
@@ -387,8 +401,8 @@ export function buildDeliveryHTML(client, settings = {}) {
   const content = `
     <div class="highlight-box">
       <div class="hl-label">Proyecto entregado en producción</div>
-      <div class="hl-value" style="font-size:18px;">${client.productionUrl || 'URL a confirmar'}</div>
-      <div class="hl-sub">Tipo: ${client.projectType} · Saldo contra entrega (30%): ${sym}${pay3.toLocaleString('es-AR')} ${client.currency || 'USD'}</div>
+      <div class="hl-value" style="font-size:18px;">${esc(client.productionUrl || 'URL a confirmar')}</div>
+      <div class="hl-sub">Tipo: ${esc(client.projectType)} · Saldo contra entrega (30%): ${sym}${pay3.toLocaleString('es-AR')} ${esc(client.currency || 'USD')}</div>
     </div>
     <div class="content-section">
       <div class="section-title">Detalles de la entrega</div>
@@ -399,8 +413,8 @@ export function buildDeliveryHTML(client, settings = {}) {
         ['Tecnologías utilizadas', client.tech || 'A completar'],
       ].map(([k, v]) => `
         <div class="item-row">
-          <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
-          <span style="color:#555;">${v}</span>
+          <span class="item-name" style="font-weight:600;color:#333;">${esc(k)}</span>
+          <span style="color:#555;">${esc(v)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">
@@ -415,7 +429,7 @@ export function buildDeliveryHTML(client, settings = {}) {
     </div>
     <div class="content-section">
       <div class="section-title">Condiciones de pago final</div>
-      <p>El cliente confirma su conformidad con el proyecto entregado y abonará el saldo restante de <strong>${sym}${pay3.toLocaleString('es-AR')} ${client.currency || 'USD'}</strong> (30% contra entrega) al recibir este documento.</p>
+      <p>El cliente confirma su conformidad con el proyecto entregado y abonará el saldo restante de <strong>${sym}${pay3.toLocaleString('es-AR')} ${esc(client.currency || 'USD')}</strong> (30% contra entrega) al recibir este documento.</p>
     </div>
     <div class="content-section">
       <div class="section-title">Garantía post-entrega</div>
@@ -441,8 +455,8 @@ export function buildUserGuideHTML(client, settings = {}) {
         ['Panel de administración', client.adminUrl || 'Ver sección de accesos'],
       ].map(([k, v]) => `
         <div class="item-row">
-          <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
-          <span style="color:#555;">${v}</span>
+          <span class="item-name" style="font-weight:600;color:#333;">${esc(k)}</span>
+          <span style="color:#555;">${esc(v)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">
@@ -452,10 +466,10 @@ export function buildUserGuideHTML(client, settings = {}) {
         ['Mensual',  'Actualizar contenido (textos, precios, imágenes). Revisar formularios de contacto.'],
         ['Trimestral', 'Actualizar plugins/dependencias si usás CMS. Revisar backups.'],
         ['Anual',    'Renovar dominio y certificado SSL. Revisar analíticas y métricas.'],
-      ].map(([freq, desc]) => `
+      ].map(([freq, text]) => `
         <div class="item-row">
-          <span class="item-name" style="font-weight:600;min-width:100px;">${freq}</span>
-          <span style="color:#555;">${desc}</span>
+          <span class="item-name" style="font-weight:600;min-width:100px;">${esc(freq)}</span>
+          <span style="color:#555;">${esc(text)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">
@@ -464,7 +478,7 @@ export function buildUserGuideHTML(client, settings = {}) {
       <div class="terms-grid">
         <div class="term-item">
           <div class="term-title">Email</div>
-          <div class="term-text">${settings.email || 'A completar'}</div>
+          <div class="term-text">${esc(settings.email || 'A completar')}</div>
         </div>
         <div class="term-item">
           <div class="term-title">Tiempo de respuesta</div>
@@ -501,14 +515,14 @@ export function buildMaintenanceHTML(client, plan = {}, settings = {}) {
   const content = `
     <div class="highlight-box">
       <div class="hl-label">Plan de mantenimiento mensual</div>
-      <div class="hl-value">${sym}${price.toLocaleString('es-AR')} ${client.currency || 'USD'} / mes</div>
-      <div class="hl-sub">Proyecto: ${client.projectType} · ${client.productionUrl || ''}</div>
+      <div class="hl-value">${sym}${price.toLocaleString('es-AR')} ${esc(client.currency || 'USD')} / mes</div>
+      <div class="hl-sub">Proyecto: ${esc(client.projectType)} · ${esc(client.productionUrl || '')}</div>
     </div>
     <div class="content-section">
       <div class="section-title">¿Qué incluye este plan?</div>
       ${includes.map(item => `
         <div class="item-row">
-          <span class="item-name">✓ ${item}</span>
+          <span class="item-name">✓ ${esc(item)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">
@@ -519,7 +533,7 @@ export function buildMaintenanceHTML(client, plan = {}, settings = {}) {
         'Migración a otro proveedor de hosting',
       ].map(item => `
         <div class="item-row">
-          <span class="item-name" style="color:#999;">✗ ${item}</span>
+          <span class="item-name" style="color:#999;">✗ ${esc(item)}</span>
         </div>`).join('')}
     </div>
     <div class="content-section">

@@ -180,6 +180,31 @@ function stampChrome(pdf, meta) {
   }
 }
 
+const FORBIDDEN_TAGS = 'script,iframe,object,embed,base,form,link,meta,svg,math'
+const SAFE_URL = /^(https?:|data:image\/|blob:|#|\/|\.)/i
+
+/**
+ * Defensa en profundidad sobre el escapado de las plantillas: el HTML se monta
+ * en el documento real para capturarlo, así que cualquier resto de markup
+ * ejecutable (onerror, onload, src raros) se elimina antes de tocar el DOM.
+ */
+function scrubDocument(doc) {
+  doc.querySelectorAll(FORBIDDEN_TAGS).forEach((node) => node.remove())
+
+  doc.querySelectorAll('*').forEach((node) => {
+    for (const attr of [...node.attributes]) {
+      const name = attr.name.toLowerCase()
+      if (name.startsWith('on')) {
+        node.removeAttribute(attr.name)
+      } else if ((name === 'src' || name === 'href' || name === 'xlink:href') && !SAFE_URL.test(attr.value.trim())) {
+        node.removeAttribute(attr.name)
+      }
+    }
+  })
+
+  return doc
+}
+
 /**
  * Mount PDF HTML in the parent document, strip flowing header/footer,
  * render body at fixed A4 width, then stamp chrome on every page
@@ -187,8 +212,7 @@ function stampChrome(pdf, meta) {
  */
 export async function downloadHtmlAsPdf(html, filename) {
   const html2pdf = (await import('html2pdf.js')).default
-  const clean = String(html).replace(/<script[\s\S]*?<\/script>/gi, '')
-  const parsed = new DOMParser().parseFromString(clean, 'text/html')
+  const parsed = scrubDocument(new DOMParser().parseFromString(String(html), 'text/html'))
 
   const host = document.createElement('div')
   host.setAttribute('aria-hidden', 'true')

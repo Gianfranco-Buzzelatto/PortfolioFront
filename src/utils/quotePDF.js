@@ -1,6 +1,6 @@
 import { buildRecommendation } from '../data/quoteRecommendation'
 import { CARE_PLANS } from '../data/quoteCatalog2026'
-import { baseHTML } from './documentPDF.js'
+import { baseHTML, esc } from './documentPDF.js'
 import { downloadHtmlAsPdf, pdfFilename } from './pdfDownload.js'
 
 const SYM_SHORT = { USD: '$', ARS: '$', EUR: '€' }
@@ -138,8 +138,9 @@ export function buildQuoteHTML(quote, settings = {}) {
   const fmt = (n) => `${symShort}${Math.round(n).toLocaleString('es-AR')}`
   const quoteNumber = String(Date.now()).slice(-6)
 
-  const logoImg = quote.clientLogo
-    ? `<img src="${quote.clientLogo}" class="client-logo" alt="Logo" />`
+  const safeLogo = /^(https?:|data:image\/)/i.test(String(quote.clientLogo || '')) ? quote.clientLogo : ''
+  const logoImg = safeLogo
+    ? `<img src="${esc(safeLogo)}" class="client-logo" alt="Logo" />`
     : ''
 
   const fallbackRec = buildRecommendation(quote, {
@@ -204,10 +205,10 @@ export function buildQuoteHTML(quote, settings = {}) {
   }, {})
 
   const featuresRows = Object.entries(byCategory).map(([cat, items]) => `
-    <tr class="cat-row"><td colspan="2">${cat}</td></tr>
+    <tr class="cat-row"><td colspan="2">${esc(cat)}</td></tr>
     ${items.map((f) => `
       <tr>
-        <td>${f.name}</td>
+        <td>${esc(f.name)}</td>
         <td class="num">${fmt(f.price * rate)}</td>
       </tr>`).join('')}
   `).join('')
@@ -215,15 +216,15 @@ export function buildQuoteHTML(quote, settings = {}) {
   const plansBlock = plans ? `
     <div class="content-section">
       <div class="section-title">Opciones de inversión</div>
-      <p class="lead">Tres alternativas. Te marco <strong>${rec.chosen}</strong> porque encaja con lo que necesitás hoy.</p>
+      <p class="lead">Tres alternativas. Te marco <strong>${esc(rec.chosen)}</strong> porque encaja con lo que necesitás hoy.</p>
       <div class="plans-grid">
         ${plans.map((p) => {
           const isRec = p.key === recKey
           return `<div class="plan-card ${isRec ? 'rec' : ''}">
             <div class="badge">${isRec ? 'Recomendada' : '&nbsp;'}</div>
-            <div class="pname">${p.label || p.key}</div>
-            <div class="pprice">${fmt(p.finalPrice || 0)} <span style="font-size:11px;font-weight:700;color:#888;">${cur}</span></div>
-            <div class="pmeta">${p.deadline || 30} días · ${p.revisions || 3} revisiones</div>
+            <div class="pname">${esc(p.label || p.key)}</div>
+            <div class="pprice">${fmt(p.finalPrice || 0)} <span style="font-size:11px;font-weight:700;color:#888;">${esc(cur)}</span></div>
+            <div class="pmeta">${esc(p.deadline || 30)} días · ${esc(p.revisions || 3)} revisiones</div>
           </div>`
         }).join('')}
       </div>
@@ -231,13 +232,13 @@ export function buildQuoteHTML(quote, settings = {}) {
         <thead>
           <tr>
             <th>Incluye</th>
-            ${plans.map((p) => `<th class="${p.key === recKey ? 'rec' : ''}">${p.label || p.key}</th>`).join('')}
+            ${plans.map((p) => `<th class="${p.key === recKey ? 'rec' : ''}">${esc(p.label || p.key)}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${uniqueNames.map((name) => `
             <tr>
-              <td class="fname">${name}</td>
+              <td class="fname">${esc(name)}</td>
               ${plans.map((p) => {
                 const on = hasItem(p, name)
                 return `<td class="tick ${on ? 'on' : ''} ${p.key === recKey ? 'rec' : ''}">${on ? '●' : '–'}</td>`
@@ -253,8 +254,8 @@ export function buildQuoteHTML(quote, settings = {}) {
       <table class="feats">${featuresRows}</table>
       <div class="highlight-box">
         <div class="hl-label">Total estimado</div>
-        <div class="hl-value">${fmt(final)} ${cur}</div>
-        <div class="hl-sub">${showUSDHint ? `≈ ${formatMoney(finalInUSD, 'USD', 1).label}` : cur}${quote.discount > 0 ? ` · Descuento ${quote.discount}%` : ''}${quote.urgency && quote.urgency !== 'normal' ? ` · ${URGENCY_LABEL[quote.urgency]}` : ''}</div>
+        <div class="hl-value">${fmt(final)} ${esc(cur)}</div>
+        <div class="hl-sub">${showUSDHint ? `≈ ${formatMoney(finalInUSD, 'USD', 1).label}` : esc(cur)}${quote.discount > 0 ? ` · Descuento ${esc(quote.discount)}%` : ''}${quote.urgency && quote.urgency !== 'normal' ? ` · ${esc(URGENCY_LABEL[quote.urgency] || '')}` : ''}</div>
       </div>
     </div>
   `
@@ -265,13 +266,13 @@ export function buildQuoteHTML(quote, settings = {}) {
     <div class="content-section">
       <div class="section-title">Recomendación</div>
       <div class="rec-box">
-        <h3>${rec.headline}</h3>
-        <p>${rec.intro}</p>
-        ${rec.sections.map((s) => `<h4>${s.title}</h4><p>${s.body}</p>`).join('')}
+        <h3>${esc(rec.headline)}</h3>
+        <p>${esc(rec.intro)}</p>
+        ${rec.sections.map((s) => `<h4>${esc(s.title)}</h4><p>${esc(s.body)}</p>`).join('')}
         ${rec.faqs?.length ? `
           <h4>Preguntas frecuentes</h4>
           <table class="faq">
-            ${rec.faqs.map((f) => `<tr><td>${f.q}</td><td>${f.a}</td></tr>`).join('')}
+            ${rec.faqs.map((f) => `<tr><td>${esc(f.q)}</td><td>${esc(f.a)}</td></tr>`).join('')}
           </table>` : ''}
       </div>
     </div>
@@ -281,13 +282,13 @@ export function buildQuoteHTML(quote, settings = {}) {
       <div class="section-title">Plan de cuidado</div>
       <div class="care">
         <div class="care-top">
-          <strong>Mantenimiento ${care.label} (opcional, recomendado)</strong>
-          <em>${care.money.perMonth}</em>
+          <strong>Mantenimiento ${esc(care.label)} (opcional, recomendado)</strong>
+          <em>${esc(care.money.perMonth)}</em>
         </div>
         <ul>
-          ${care.includes.map((item) => `<li>${item}</li>`).join('')}
+          ${care.includes.map((item) => `<li>${esc(item)}</li>`).join('')}
         </ul>
-        <div class="care-note">Arranca al publicar. Mínimo ${care.minMonths} meses. El sitio es tuyo: si cortás el plan, te paso hosting y dominio a tu nombre. Funciones nuevas se cotizan aparte.</div>
+        <div class="care-note">Arranca al publicar. Mínimo ${esc(care.minMonths)} meses. El sitio es tuyo: si cortás el plan, te paso hosting y dominio a tu nombre. Funciones nuevas se cotizan aparte.</div>
       </div>
     </div>` : ''}
 
@@ -304,7 +305,7 @@ export function buildQuoteHTML(quote, settings = {}) {
         </div>
         <div class="term-item">
           <div class="term-title">Validez</div>
-          <div class="term-text">15 días desde la fecha de esta cotización (${validUntil}).</div>
+          <div class="term-text">15 días desde la fecha de esta cotización (${esc(validUntil)}).</div>
         </div>
         <div class="term-item">
           <div class="term-title">Revisiones</div>
@@ -316,7 +317,7 @@ export function buildQuoteHTML(quote, settings = {}) {
     ${quote.description ? `
     <div class="content-section">
       <div class="section-title">Brief</div>
-      <p>${quote.description}</p>
+      <p>${esc(quote.description)}</p>
     </div>` : ''}
   `
 
