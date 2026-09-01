@@ -34,6 +34,16 @@
   object-fit: cover;
   object-position: 78% 48%;
   opacity: 0.42;
+  animation: heroMediaSettle 1800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes heroMediaSettle {
+  from { transform: scale(1.07); }
+  to   { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__media-img { animation: none; }
 }
 
 .hero__media::after {

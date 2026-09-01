@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProjectCard from '../components/ProjectCard'
 import api from '../hooks/useApi'
@@ -17,6 +17,7 @@ import { whatsappHref } from '../utils/whatsapp'
 import Seo from '../seo/Seo'
 import { faqJsonLd, personJsonLd, professionalServiceJsonLd } from '../seo/jsonld'
 import Reveal from '../components/Reveal'
+import Intro from '../components/Intro/Intro'
 import './Home.css'
 
 const CREDENTIAL = {
@@ -86,6 +87,7 @@ export default function Home() {
   const settings = useSettings()
   const [featuredProjects, setFeaturedProjects] = useState(SHOWCASE_PROJECTS)
   const [showMoreFormation, setShowMoreFormation] = useState(false)
+  const heroRef = useRef(null)
 
   useEffect(() => {
     api
@@ -109,6 +111,7 @@ export default function Home() {
 
   return (
     <main className="home">
+      <Intro heroRef={heroRef} />
       <Seo
         path="/"
         description="No hacemos solo páginas: soluciones para conseguir clientes, vender online, recibir pedidos, agendar turnos y organizar procesos."
@@ -120,7 +123,7 @@ export default function Home() {
           <img src="/images/hero-cubes.png" alt="" className="hero__media-img" />
         </div>
         <div className="hero__glow" aria-hidden />
-        <div className="container hero__content">
+        <div className="container hero__content" ref={heroRef}>
           <div className="hero__text">
             <p className="hero__eyebrow">
               <span className="hero__dot" />
