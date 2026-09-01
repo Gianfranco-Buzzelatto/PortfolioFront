@@ -2,6 +2,12 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 export function scrollToId(id, behavior = 'smooth') {
+  const lenis = window.__lenis
+  if (lenis) {
+    if (!id) lenis.scrollTo(0, { immediate: behavior === 'auto' })
+    else lenis.scrollTo(`#${id}`, { immediate: behavior === 'auto' })
+    return
+  }
   if (!id) {
     window.scrollTo({ top: 0, behavior })
     return
@@ -20,11 +26,11 @@ export default function ScrollToHash() {
     const tick = () => {
       const el = id ? document.getElementById(id) : null
       if (!id) {
-        window.scrollTo({ top: 0, behavior: 'auto' })
+        scrollToId('', 'auto')
         return
       }
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        scrollToId(id, 'smooth')
         return
       }
       if (frames++ < 30) requestAnimationFrame(tick)

@@ -1,10 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useSettings } from '../../context/SettingsContext'
 import { whatsappHref } from '../../utils/whatsapp'
+import Seo from '../../seo/Seo'
+import { breadcrumbJsonLd } from '../../seo/jsonld'
 import './DemoLayout.css'
 
 export default function DemoLayout({ title, subtitle, client, children }) {
   const settings = useSettings()
+  const { pathname } = useLocation()
   const wa = whatsappHref(
     settings.phone,
     `Hola Gianfranco, vi la demo de ${title} y quiero algo así para mi negocio.`
@@ -12,6 +15,17 @@ export default function DemoLayout({ title, subtitle, client, children }) {
 
   return (
     <div className="demo-layout">
+      <Seo
+        title={title}
+        description={subtitle || `Demo interactiva: ${title}. Datos de muestra, sin información privada.`}
+        path={pathname}
+        type="article"
+        jsonLd={breadcrumbJsonLd([
+          { name: 'Inicio', path: '/' },
+          { name: 'Proyectos', path: '/proyectos' },
+          { name: title, path: pathname },
+        ])}
+      />
       <header className="demo-layout__bar">
         <div className="demo-layout__bar-inner">
           <Link to="/proyectos" className="demo-layout__back">
@@ -33,20 +47,20 @@ export default function DemoLayout({ title, subtitle, client, children }) {
         {children}
       </div>
 
-      <section className="demo-layout__cta">
+      <footer className="demo-layout__cta">
         <div className="demo-layout__cta-inner">
           <h2>¿Querés algo así para tu negocio?</h2>
           <p>Te armo una propuesta a medida. Respuesta en 24–48 hs hábiles.</p>
           <div className="demo-layout__cta-actions">
             <Link to="/cotizar" className="btn btn-primary">
-              Pedir propuesta
+              Quiero mi proyecto
             </Link>
             <a className="btn btn-whatsapp" href={wa} target="_blank" rel="noopener noreferrer">
               <i className="fab fa-whatsapp" /> WhatsApp
             </a>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   )
 }

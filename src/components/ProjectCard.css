@@ -113,6 +113,14 @@
   font-weight: 700;
 }
 
+.project-card__title a {
+  color: inherit;
+}
+
+.project-card__title a:hover {
+  color: var(--primary);
+}
+
 .project-card__desc {
   font-size: 0.88rem;
   color: var(--text-muted);

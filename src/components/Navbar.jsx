@@ -3,9 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { scrollToId } from './ScrollToHash'
 import './Navbar.css'
 
+import { DEMOS_ENABLED } from '../data/siteContent'
+
 const NAV_LINKS = [
   { to: '/', hash: '', label: 'Inicio' },
-  { to: '/', hash: 'servicios', label: 'Servicios' },
+  { to: '/soluciones', hash: '', label: 'Soluciones' },
+  ...(DEMOS_ENABLED ? [{ to: '/demos', hash: '', label: 'Demos' }] : []),
   { to: '/proyectos', hash: '', label: 'Proyectos' },
   { to: '/', hash: 'contacto', label: 'Contacto' },
 ]
@@ -54,7 +57,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
+    <header className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
       <div className="container navbar__inner">
         <Link
           to="/"
@@ -64,7 +67,8 @@ export default function Navbar() {
           GB<span className="navbar__brand-dot">.</span>Dev
         </Link>
 
-        <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`}>
+        <nav aria-label="Principal">
+        <ul id="nav-menu" className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`}>
           {NAV_LINKS.map((link) => (
             <li key={link.label}>
               <Link
@@ -78,10 +82,11 @@ export default function Navbar() {
           ))}
           <li>
             <Link to="/cotizar" className="btn btn-primary btn-sm">
-              Pedir propuesta
+              Cotizar
             </Link>
           </li>
         </ul>
+        </nav>
 
         <button
           type="button"
@@ -89,12 +94,13 @@ export default function Navbar() {
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={menuOpen}
+          aria-controls="nav-menu"
         >
           <span />
           <span />
           <span />
         </button>
       </div>
-    </nav>
+    </header>
   )
 }

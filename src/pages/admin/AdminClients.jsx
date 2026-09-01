@@ -48,9 +48,9 @@ const STAGE_DOCS = {
 
 const STAGE_TASKS = {
   activo: [
-    'Cobrar 40% al arrancar',
+    'Confirmar arranque con el cliente (seña en privado)',
     'Crear repositorio / entorno de desarrollo',
-    'Compartir confirmación de inicio con el cliente',
+    'Compartir el link del portal',
     'Mantener actualizaciones semanales',
   ],
   revision: [
@@ -58,18 +58,17 @@ const STAGE_TASKS = {
     'Enviar link al cliente para revisar',
     'Registrar los cambios solicitados abajo',
     'Verificar que no supere las revisiones incluidas',
-    'Cobrar 30% a mitad de proyecto',
   ],
   entregado: [
     'Deploy a producción',
-    'Cobrar 30% contra entrega',
     'Entregar accesos y credenciales',
-    'Enviar acta de entrega y guía de uso',
+    'Confirmar la garantía de 15 días en el portal',
+    'Ofrecer el plan de cuidado antes de que venza',
   ],
   mantenimiento: [
-    'Proponer plan de mantenimiento mensual',
-    'Definir precio y qué incluye',
-    'Facturar la retención mensual',
+    'Confirmar qué incluye el plan mensual',
+    'Agendar el próximo check-in',
+    'Publicar una novedad en el portal si hubo un cambio',
   ],
 }
 
@@ -89,6 +88,27 @@ export default function AdminClients() {
   // Maintenance plan form
   const [maintPrice, setMaintPrice] = useState('')
   const [maintOpen,  setMaintOpen]  = useState(false)
+
+  const [fiche, setFiche] = useState({})
+  const [savingFiche, setSavingFiche] = useState(false)
+  const [shareBusy, setShareBusy] = useState(false)
+  const [updateDraft, setUpdateDraft] = useState('')
+  const [checkIn, setCheckIn] = useState('')
+
+  const FICHE_FIELDS = [
+    ['domain', 'Dominio'],
+    ['hosting', 'Hosting'],
+    ['frontend', 'Frontend'],
+    ['backend', 'Backend'],
+    ['database', 'Base de datos'],
+    ['storage', 'Storage'],
+    ['emails', 'Emails'],
+    ['payments', 'Pagos'],
+    ['whatsapp', 'WhatsApp'],
+    ['analytics', 'Analytics'],
+    ['apis', 'APIs'],
+    ['accessesNotes', 'Accesos (notas)'],
+  ]
 
   const notify = msg => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -185,8 +205,94 @@ export default function AdminClients() {
   // ── Stagings / production URL edit ────────────────────────────────────────
   const [editUrl, setEditUrl] = useState({ staging: '', production: '' })
   useEffect(() => {
-    if (selected) setEditUrl({ staging: selected.stagingUrl || '', production: selected.productionUrl || '' })
+    if (selected) {
+      setEditUrl({ staging: selected.stagingUrl || '', production: selected.productionUrl || '' })
+      setFiche(selected.techFiche || {})
+      setCheckIn(selected.care?.checkInAt || '')
+    }
   }, [selected?._id])
+
+  const saveFiche = async () => {
+    setSavingFiche(true)
+    try {
+      const r = await api.put(`/clients/${selected._id}`, { techFiche: fiche })
+      setSelected(r.data)
+      notify('Ficha técnica guardada ✓')
+    } finally {
+      setSavingFiche(false)
+    }
+  }
+
+  const toggleKickoff = async (id, done) => {
+    if (!selected) return
+    try {
+      const r = await api.put(`/clients/${selected._id}`, {
+        kickoff: { checks: { [id]: { done } } },
+      })
+      setSelected(r.data)
+      setClients((list) => list.map((c) => (c._id === r.data._id ? r.data : c)))
+    } catch {
+      notify('No se pudo actualizar el checklist')
+    }
+  }
+
+  const sharePortalLink = async () => {
+    if (!selected) return
+    setShareBusy(true)
+    try {
+      const res = await api.post(`/clients/${selected._id}/portal-link`)
+      const path = res.data.path || `/portal/${res.data.token}`
+      const url = `${window.location.origin}${path}`
+      setSelected(res.data.client)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+        notify('Link del portal copiado')
+      } else {
+        notify(url)
+      }
+    } catch {
+      notify('No pude generar el link del portal')
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
+  const sendClientUpdate = async () => {
+    if (!updateDraft.trim()) return
+    const r = await api.put(`/clients/${selected._id}`, { clientUpdate: updateDraft.trim() })
+    setSelected(r.data)
+    setUpdateDraft('')
+    notify('Novedad publicada en el portal ✓')
+  }
+
+  const setCareStatus = async (status, extra = {}) => {
+    const r = await api.put(`/clients/${selected._id}`, { care: { status, ...extra } })
+    setSelected(r.data)
+    notify('Cuidado actualizado ✓')
+  }
+
+  const offerCare = async () => {
+    const r = await api.put(`/clients/${selected._id}`, {
+      care: { status: 'offered' },
+      clientUpdate: 'Te dejé el plan de cuidado para cuando termine la garantía: backups, hosting y cambios chicos.',
+    })
+    setSelected(r.data)
+    notify('Plan de cuidado ofrecido en el portal ✓')
+  }
+
+  const setWarrantyTicketStatus = async (id, status) => {
+    const r = await api.put(`/clients/${selected._id}`, {
+      warrantyTicketId: id,
+      warrantyTicketStatus: status,
+    })
+    setSelected(r.data)
+  }
+
+  const saveCheckIn = async () => {
+    const r = await api.put(`/clients/${selected._id}`, { care: { checkInAt: checkIn } })
+    setSelected(r.data)
+    notify('Check-in guardado ✓')
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -264,7 +370,12 @@ export default function AdminClients() {
                   <a href={`mailto:${selected.email}`}>{selected.email}</a>
                 </div>
               </div>
-              <button className="modal__close" onClick={() => setSelected(null)}><i className="fas fa-times" /></button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={sharePortalLink} disabled={shareBusy}>
+                  <i className="fas fa-link" /> {shareBusy ? 'Generando…' : 'Link portal'}
+                </button>
+                <button className="modal__close" onClick={() => setSelected(null)}><i className="fas fa-times" /></button>
+              </div>
             </div>
 
             {/* Progress bar de etapas */}
@@ -339,6 +450,70 @@ export default function AdminClients() {
                   </div>
                 )}
 
+              {/* Ficha técnica */}
+              <div className="client-detail__section">
+                <label>Ficha técnica</label>
+                {selected.onboarding?.submittedAt && (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                    Onboarding recibido el {new Date(selected.onboarding.submittedAt).toLocaleString('es-AR')}
+                  </p>
+                )}
+                <div className="fiche-grid">
+                  {FICHE_FIELDS.map(([key, label]) => (
+                    key === 'accessesNotes' || key === 'apis' ? (
+                      <label key={key} className="onboard-block" style={{ gridColumn: '1 / -1' }}>
+                        {label}
+                        <textarea
+                          className="form-control"
+                          rows={2}
+                          value={fiche[key] || ''}
+                          onChange={(e) => setFiche((f) => ({ ...f, [key]: e.target.value }))}
+                        />
+                      </label>
+                    ) : (
+                      <label key={key} className="onboard-block">
+                        {label}
+                        <input
+                          className="form-control"
+                          value={fiche[key] || ''}
+                          onChange={(e) => setFiche((f) => ({ ...f, [key]: e.target.value }))}
+                        />
+                      </label>
+                    )
+                  ))}
+                </div>
+                <button type="button" className="btn btn-outline btn-sm" onClick={saveFiche} disabled={savingFiche}>
+                  {savingFiche ? 'Guardando…' : 'Guardar ficha técnica'}
+                </button>
+              </div>
+
+              <div className="client-detail__section">
+                <label>Portal del cliente</label>
+                {selected.portalToken && (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 10px', wordBreak: 'break-all' }}>
+                    <a href={`/portal/${selected.portalToken}`} target="_blank" rel="noreferrer">
+                      /portal/{selected.portalToken.slice(0, 8)}…
+                    </a>
+                  </p>
+                )}
+                {(selected.updates || []).slice(-5).reverse().map((item, i) => (
+                  <p key={`${item.date}-${i}`} style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '0 0 6px' }}>
+                    {item.date ? new Date(item.date).toLocaleDateString('es-AR') : ''} · {item.message}
+                  </p>
+                ))}
+                <textarea
+                  className="form-control"
+                  rows={2}
+                  placeholder="Novedad visible en el portal (ej: esta semana queda el home)"
+                  value={updateDraft}
+                  onChange={(e) => setUpdateDraft(e.target.value)}
+                  style={{ marginBottom: 8 }}
+                />
+                <button type="button" className="btn btn-outline btn-sm" onClick={sendClientUpdate} disabled={!updateDraft.trim()}>
+                  Publicar novedad
+                </button>
+              </div>
+
               {/* URLs */}
               <div className="client-detail__section">
                 <label>URLs del proyecto</label>
@@ -359,6 +534,36 @@ export default function AdminClients() {
                   />
                 </div>
               </div>
+
+              {/* Checklist de arranque */}
+              {selected.kickoffStatus && (
+                <div className="client-detail__section">
+                  <label>
+                    Para arrancar necesitamos…{' '}
+                    <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>
+                      {selected.kickoffStatus.doneCount}/{selected.kickoffStatus.total}
+                      {selected.kickoffStatus.ready ? ' · listo' : ''}
+                    </span>
+                  </label>
+                  <div className="kickoff-list">
+                    {(selected.kickoffStatus.items || []).map((item) => (
+                      <label key={item.id} className={`kickoff-row ${item.done ? 'is-done' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(item.done)}
+                          onChange={(e) => toggleKickoff(item.id, e.target.checked)}
+                        />
+                        <span>
+                          {item.label}
+                          {item.source === 'auto' && item.done ? (
+                            <small> · auto</small>
+                          ) : null}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Tareas de la etapa */}
               <div className="client-detail__section">
@@ -391,12 +596,14 @@ export default function AdminClients() {
               </div>
 
               {/* Revisiones (solo en etapa revisión) */}
-              {selected.stage === 'revision' && (
+              {(selected.stage === 'revision' || selected.stage === 'activo' || (selected.revisionsList || []).length > 0) && (
                 <div className="client-detail__section">
                   <label>Registro de revisiones</label>
                   {(selected.revisionsList || []).map((r, i) => (
                     <div key={i} className="rev-row">
-                      <span className="rev-desc">{r.description}</span>
+                      <span className="rev-desc">
+                        {r.fromClient ? 'Cliente: ' : ''}{r.description}
+                      </span>
                       <span className={`rev-status rev-${r.status}`}>
                         {r.status === 'aprobado' ? 'Aprobado' : r.status === 'fuera-de-alcance' ? 'Fuera de alcance' : 'Pendiente'}
                       </span>
@@ -422,6 +629,35 @@ export default function AdminClients() {
               )}
 
               {/* Plan de mantenimiento (solo cuando entregado+) */}
+              {(selected.stage === 'entregado' || selected.stage === 'mantenimiento') && (
+                <div className="client-detail__section">
+                  <label>Garantía (15 días desde la entrega)</label>
+                  {selected.warranty?.endsAt ? (
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                      Hasta {new Date(selected.warranty.endsAt).toLocaleDateString('es-AR')}
+                      {new Date(selected.warranty.endsAt) >= new Date() ? ' · activa' : ' · vencida'}
+                    </p>
+                  ) : (
+                    <p className="portal-muted" style={{ margin: '0 0 10px' }}>Se activa al pasar a Entregado.</p>
+                  )}
+                  {(selected.warrantyTickets || []).map((t) => (
+                    <div key={t._id} className="rev-row">
+                      <span className="rev-desc">{t.description}</span>
+                      <select
+                        className="form-control"
+                        style={{ maxWidth: 180 }}
+                        value={t.status}
+                        onChange={(e) => setWarrantyTicketStatus(t._id, e.target.value)}
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="cubierto">Cubierto</option>
+                        <option value="fuera-de-alcance">Fuera de alcance</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {(selected.stage === 'entregado' || selected.stage === 'mantenimiento') && (
                 <div className="client-detail__section">
                   <label>Plan de mantenimiento</label>
@@ -455,6 +691,33 @@ export default function AdminClients() {
                       </div>
                     </div>
                   )}
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '12px 0 8px' }}>
+                    Estado de cuidado: <strong>{selected.care?.status === 'active' ? 'activo' : selected.care?.status === 'offered' ? 'ofrecido' : selected.care?.status === 'declined' ? 'no quiere' : selected.care?.status === 'paused' ? 'pausado' : 'sin ofrecer'}</strong>
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {selected.care?.status !== 'offered' && selected.care?.status !== 'active' && (
+                      <button type="button" className="btn btn-outline btn-sm" onClick={offerCare}>Ofrecer plan en el portal</button>
+                    )}
+                    {selected.care?.status !== 'active' && (
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setCareStatus('active')}>Marcar cuidado activo</button>
+                    )}
+                    {selected.care?.status === 'active' && (
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setCareStatus('paused')}>Pausar</button>
+                    )}
+                    {selected.care?.status !== 'declined' && (
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setCareStatus('declined')}>No quiere plan</button>
+                    )}
+                  </div>
+                  <div className="form-group" style={{ marginTop: 12 }}>
+                    <label className="form-label">Próximo check-in</label>
+                    <input
+                      className="form-control"
+                      placeholder="Ej: 15 sep"
+                      value={checkIn}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      onBlur={saveCheckIn}
+                    />
+                  </div>
                 </div>
               )}
 

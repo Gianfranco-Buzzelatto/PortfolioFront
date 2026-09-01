@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import ProjectCard from '../components/ProjectCard'
 import api from '../hooks/useApi'
 import { SHOWCASE_PROJECTS } from '../data/showcaseProjects'
+import Seo from '../seo/Seo'
+import { breadcrumbJsonLd } from '../seo/jsonld'
 import './Projects.css'
 
 export default function Projects() {
@@ -23,12 +25,21 @@ export default function Projects() {
 
   return (
     <main className="projects-page">
+      <Seo
+        title="Proyectos"
+        description="Casos de landings, e-commerce y sistemas para gastronomía, retail y marcas de producto."
+        path="/proyectos"
+        jsonLd={breadcrumbJsonLd([
+          { name: 'Inicio', path: '/' },
+          { name: 'Proyectos', path: '/proyectos' },
+        ])}
+      />
       <section className="page-hero texture-bg">
         <div className="container page-hero__content">
           <p className="section-label">Casos de trabajo</p>
           <h1 className="page-hero__title">Proyectos que resuelven problemas reales</h1>
           <p className="page-hero__sub">
-            Cada entrega está pensada para el negocio del cliente: más ventas, mejor operación o presencia profesional.
+            Casos reales por rubro (anonimizados). Abrí cada caso para ver problema, solución y resultado.
           </p>
         </div>
       </section>

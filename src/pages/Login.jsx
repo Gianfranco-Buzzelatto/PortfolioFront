@@ -2,40 +2,50 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../hooks/useApi'
+import Seo from '../seo/Seo'
 import './Login.css'
 
 export default function Login() {
-  const [form, setForm]     = useState({ email: '', password: '' })
-  const [error, setError]   = useState('')
+  const [form, setForm] = useState({ email: '', password: '' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
       const r = await api.post('/auth/login', form)
       login(r.data.user, r.data.token)
       navigate('/admin')
     } catch (err) {
       setError(err.response?.data?.message || 'Credenciales incorrectas')
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="login-page texture-bg">
+      <Seo title="Acceso admin" path="/login" noindex />
       <div className="login-card animate-fadeInUp">
         <div className="login-card__header">
-          <Link to="/" className="login-logo">
-            <span>&lt;</span>Portfolio<span>/&gt;</span>
+          <Link to="/" className="login-logo" aria-label="GB.Dev">
+            GB<span className="login-logo__dot">.</span>Dev
           </Link>
           <h1>Panel Admin</h1>
           <p>Iniciá sesión para gestionar tu portfolio</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="login-error"><i className="fas fa-exclamation-circle"/> {error}</div>}
+          {error && (
+            <div className="login-error">
+              <i className="fas fa-exclamation-circle" /> {error}
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Email</label>
@@ -44,25 +54,43 @@ export default function Login() {
               type="email"
               placeholder="admin@example.com"
               value={form.email}
-              onChange={e => setForm(f => ({...f, email: e.target.value}))}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               required
+              autoComplete="username"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">Contraseña</label>
-            <input
-              className="form-control"
-              type="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={e => setForm(f => ({...f, password: e.target.value}))}
-              required
-            />
+            <div className="password-field">
+              <input
+                className="form-control"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="password-field__toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden />
+              </button>
+            </div>
           </div>
 
-          <button className="btn btn-primary" type="submit" disabled={loading} style={{width:'100%', justifyContent:'center', marginTop:8}}>
-            {loading ? 'Ingresando...' : <><i className="fas fa-sign-in-alt"/> Ingresar</>}
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={loading}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
+          >
+            {loading ? 'Ingresando...' : <><i className="fas fa-sign-in-alt" /> Ingresar</>}
           </button>
         </form>
 

@@ -22,11 +22,12 @@ const statusColor = { pending: '#ffc107', reviewed: '#17a2b8', accepted: '#28a74
 export default function Dashboard() {
   const [projects, setProjects] = useState([])
   const [quotes, setQuotes]     = useState([])
+  const [clients, setClients]   = useState([])
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    Promise.all([api.get('/projects/admin/all'), api.get('/quotes')])
-      .then(([p, q]) => { setProjects(p.data); setQuotes(q.data) })
+    Promise.all([api.get('/projects/admin/all'), api.get('/quotes'), api.get('/clients')])
+      .then(([p, q, c]) => { setProjects(p.data); setQuotes(q.data); setClients(c.data || []) })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -34,6 +35,17 @@ export default function Dashboard() {
   const pendingQuotes  = quotes.filter(q => q.status === 'pending').length
   const featuredCount  = projects.filter(p => p.featured).length
   const recentQuotes   = quotes.slice(0, 5)
+  const warrantySoon = clients.filter((c) => {
+    if (!c.warranty?.endsAt) return false
+    const ends = new Date(c.warranty.endsAt).getTime()
+    const now = Date.now()
+    return ends >= now && ends <= now + 7 * 24 * 60 * 60 * 1000
+  })
+  const careGap = clients.filter((c) => (
+    (c.stage === 'entregado' || c.stage === 'mantenimiento')
+    && c.care?.status !== 'active'
+    && c.care?.status !== 'paused'
+  ))
 
   return (
     <AdminLayout title="Dashboard">
@@ -48,6 +60,25 @@ export default function Dashboard() {
             <StatCard icon="fa-file-invoice"   label="Cotizaciones"       value={quotes.length}     color="#6366f1"         to="/admin/cotizaciones" />
             <StatCard icon="fa-clock"          label="Pendientes"         value={pendingQuotes}     color="#ef4444"         to="/admin/cotizaciones" />
           </div>
+
+          {(warrantySoon.length > 0 || careGap.length > 0) && (
+            <div className="dash-card" style={{ marginBottom: 28 }}>
+              <div className="dash-card__header">
+                <h2>Postventa</h2>
+                <Link to="/admin/clientes" className="dash-card__link">Clientes →</Link>
+              </div>
+              {warrantySoon.map((c) => (
+                <p key={`w-${c._id}`} style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Garantía por vencer: <strong>{c.clientName}</strong> · {new Date(c.warranty.endsAt).toLocaleDateString('es-AR')}
+                </p>
+              ))}
+              {careGap.map((c) => (
+                <p key={`c-${c._id}`} style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Sin cuidado activo: <strong>{c.clientName}</strong>
+                </p>
+              ))}
+            </div>
+          )}
 
           <div className="dash-grid">
             {/* Recent quotes */}

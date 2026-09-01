@@ -3,6 +3,8 @@ import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
 import './AdminSettings.css'
 
+const EMPTY_ADMIN = { username: '', email: '', password: '' }
+
 export default function AdminSettings() {
   const [form, setForm]     = useState({
     name: '', title: '', bio: '',
@@ -14,25 +16,38 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [toast, setToast]     = useState('')
+  const [admins, setAdmins] = useState([])
+  const [adminForm, setAdminForm] = useState(EMPTY_ADMIN)
+  const [showAdminPassword, setShowAdminPassword] = useState(false)
+  const [creatingAdmin, setCreatingAdmin] = useState(false)
+  const [adminError, setAdminError] = useState('')
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
+  const loadAdmins = () =>
+    api.get('/auth/admins')
+      .then((r) => setAdmins(Array.isArray(r.data) ? r.data : []))
+      .catch(() => setAdmins([]))
+
   useEffect(() => {
-    api.get('/settings').then(r => {
-      const s = r.data
-      setForm({
-        name:      s.name      || '',
-        title:     s.title     || '',
-        bio:       s.bio       || '',
-        email:     s.email     || '',
-        phone:     s.phone     || '',
-        location:  s.location  || '',
-        github:    s.github    || '',
-        linkedin:  s.linkedin  || '',
-        heroTexts: s.heroTexts?.length ? [...s.heroTexts, '', '', ''].slice(0, 3) : ['', '', ''],
-        skills:    s.skills?.join(', ') || '',
-      })
-    }).finally(() => setLoading(false))
+    Promise.all([
+      api.get('/settings').then((r) => {
+        const s = r.data
+        setForm({
+          name:      s.name      || '',
+          title:     s.title     || '',
+          bio:       s.bio       || '',
+          email:     s.email     || '',
+          phone:     s.phone     || '',
+          location:  s.location  || '',
+          github:    s.github    || '',
+          linkedin:  s.linkedin  || '',
+          heroTexts: s.heroTexts?.length ? [...s.heroTexts, '', '', ''].slice(0, 3) : ['', '', ''],
+          skills:    s.skills?.join(', ') || '',
+        })
+      }),
+      loadAdmins(),
+    ]).finally(() => setLoading(false))
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -54,6 +69,29 @@ export default function AdminSettings() {
       notify('Configuración guardada ✓')
     } catch { notify('Error al guardar') }
     finally { setSaving(false) }
+  }
+
+  const setAdmin = (k, v) => setAdminForm((f) => ({ ...f, [k]: v }))
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault()
+    setAdminError('')
+    setCreatingAdmin(true)
+    try {
+      const r = await api.post('/auth/admins', {
+        username: adminForm.username.trim(),
+        email: adminForm.email.trim(),
+        password: adminForm.password,
+      })
+      setAdmins((list) => [...list, r.data.user])
+      setAdminForm(EMPTY_ADMIN)
+      setShowAdminPassword(false)
+      notify('Administrador creado ✓')
+    } catch (err) {
+      setAdminError(err.response?.data?.message || 'No se pudo crear el administrador')
+    } finally {
+      setCreatingAdmin(false)
+    }
   }
 
   if (loading) return <AdminLayout title="Configuración"><div style={{textAlign:'center',padding:'80px',color:'var(--gray-light)'}}>Cargando...</div></AdminLayout>
@@ -160,6 +198,88 @@ export default function AdminSettings() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Administradores */}
+        <div className="settings-card">
+          <h2 className="settings-card__title"><i className="fas fa-user-shield" /> Administradores</h2>
+          <p className="settings-card__desc">
+            Podés crear más usuarios con acceso al panel. Entran con email y contraseña en /login.
+          </p>
+
+          <ul className="settings-admins">
+            {admins.map((admin) => (
+              <li key={admin.id} className="settings-admins__item">
+                <div className="settings-admins__avatar" aria-hidden>
+                  {(admin.username || admin.email || '?').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="settings-admins__name">{admin.username}</p>
+                  <p className="settings-admins__email">{admin.email}</p>
+                </div>
+              </li>
+            ))}
+            {admins.length === 0 && (
+              <li className="settings-admins__empty">Todavía no hay administradores listados.</li>
+            )}
+          </ul>
+
+          <form className="settings-admin-form" onSubmit={handleCreateAdmin}>
+            <h3 className="settings-admin-form__title">Nuevo administrador</h3>
+            {adminError && <div className="settings-admin-form__error" role="alert">{adminError}</div>}
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Usuario</label>
+                <input
+                  className="form-control"
+                  value={adminForm.username}
+                  onChange={(e) => setAdmin('username', e.target.value)}
+                  placeholder="nombre.apellido"
+                  required
+                  autoComplete="off"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  className="form-control"
+                  type="email"
+                  value={adminForm.email}
+                  onChange={(e) => setAdmin('email', e.target.value)}
+                  placeholder="admin@tudominio.com"
+                  required
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Contraseña</label>
+              <div className="password-field">
+                <input
+                  className="form-control"
+                  type={showAdminPassword ? 'text' : 'password'}
+                  value={adminForm.password}
+                  onChange={(e) => setAdmin('password', e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-field__toggle"
+                  onClick={() => setShowAdminPassword((v) => !v)}
+                  aria-label={showAdminPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  title={showAdminPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  <i className={`fas ${showAdminPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden />
+                </button>
+              </div>
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={creatingAdmin}>
+              {creatingAdmin ? 'Creando…' : <><i className="fas fa-user-plus" /> Crear administrador</>}
+            </button>
+          </form>
         </div>
 
         {/* Save button */}

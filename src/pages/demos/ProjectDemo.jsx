@@ -1,12 +1,13 @@
 import { Navigate, useParams } from 'react-router-dom'
 import GastronomiaDemo from './GastronomiaDemo'
 import PerfumeriaDemo from './PerfumeriaDemo'
-import MetalurgicaDemo from './MetalurgicaDemo'
+import VelasDemo from './VelasDemo'
 
 const DEMOS = {
   gastronomia: GastronomiaDemo,
   perfumeria: PerfumeriaDemo,
-  metalurgica: MetalurgicaDemo,
+  velas: VelasDemo,
+  metalurgica: VelasDemo, // compat: la demo vieja ahora apunta a velas
 }
 
 export default function ProjectDemo() {

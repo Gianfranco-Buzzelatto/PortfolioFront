@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext'
+import { DEMOS_ENABLED } from '../data/siteContent'
 import { whatsappHref } from '../utils/whatsapp'
 import './Footer.css'
 
@@ -37,7 +38,8 @@ export default function Footer() {
             <h4>Navegación</h4>
             <ul>
               <li><Link to="/">Inicio</Link></li>
-              <li><Link to={{ pathname: '/', hash: '#servicios' }}>Servicios</Link></li>
+              <li><Link to="/soluciones">Soluciones</Link></li>
+              {DEMOS_ENABLED && <li><Link to="/demos">Demos</Link></li>}
               <li><Link to="/proyectos">Proyectos</Link></li>
               <li><Link to="/cotizar">Cotizar</Link></li>
             </ul>
@@ -46,9 +48,11 @@ export default function Footer() {
           <div className="footer__links">
             <h4>Oferta</h4>
             <ul>
-              <li><Link to={{ pathname: '/', hash: '#servicios' }}>Webs y landings</Link></li>
-              <li><Link to={{ pathname: '/', hash: '#servicios' }}>E-commerce</Link></li>
-              <li><Link to={{ pathname: '/', hash: '#servicios' }}>Sistemas internos</Link></li>
+              <li><Link to="/soluciones#conseguir-clientes">Conseguir clientes</Link></li>
+              <li><Link to="/soluciones#vender-online">Vender online</Link></li>
+              <li><Link to="/soluciones#recibir-pedidos">Recibir pedidos</Link></li>
+              <li><Link to="/soluciones#turneros">Agendar turnos</Link></li>
+              <li><Link to="/cuidado">Plan de cuidado</Link></li>
             </ul>
           </div>
 
@@ -59,11 +63,14 @@ export default function Footer() {
               <a href={wa} target="_blank" rel="noopener noreferrer">{phone}</a>
             </p>
             <p>
-              <i className="fas fa-envelope" />{' '}
+              <i className="fas fa-envelope" aria-hidden />{' '}
               <a href={`mailto:${email}`}>{email}</a>
             </p>
             <p>
-              <i className="fas fa-map-marker-alt" /> {location}
+              <i className="fas fa-map-marker-alt" aria-hidden /> {location}
+            </p>
+            <p className="footer__cta">
+              <Link to="/cotizar" className="btn btn-primary btn-sm">Quiero mi proyecto</Link>
             </p>
           </div>
         </div>

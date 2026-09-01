@@ -1,0 +1,184 @@
+.velas-demo {
+  background: #f7f3ee;
+  color: #1c1814;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.velas-demo__top {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.velas-demo__brand {
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.03em;
+}
+
+.velas-demo__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.velas-demo__filters button {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #555;
+}
+
+.velas-demo__filters button.active {
+  background: #4a3426;
+  color: #fff;
+  border-color: #4a3426;
+}
+
+.velas-demo__body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 0;
+}
+
+.velas-demo__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 24px;
+}
+
+.velas-demo__card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.velas-demo__card--added {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(74, 52, 38, 0.12);
+}
+
+.velas-demo__flame {
+  height: 100px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 35%, #ffe8a3 0%, transparent 28%),
+    linear-gradient(180deg, #f0e2d0 0%, #c4a484 55%, #6b4a35 100%);
+}
+
+.velas-demo__family {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+}
+
+.velas-demo__card h3 {
+  margin: 6px 0 4px;
+  font-size: 1rem;
+  color: #1c1814;
+}
+
+.velas-demo__card p {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  color: #777;
+}
+
+.velas-demo__card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.velas-demo__card footer button {
+  background: #4a3426;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.velas-demo__cart {
+  background: #fff;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 24px 20px;
+}
+
+.velas-demo__cart h4 {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: #1c1814;
+}
+
+.velas-demo__cart ul {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.velas-demo__cart li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.velas-demo__empty {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.velas-demo__total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 12px;
+  color: #1c1814;
+}
+
+.velas-demo__checkout {
+  width: 100%;
+  background: #b45309;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.velas-demo__checkout:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.velas-demo__note {
+  margin: 12px 0 0;
+  font-size: 0.72rem;
+  color: #999;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .velas-demo__body { grid-template-columns: 1fr; }
+  .velas-demo__cart { border-left: none; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+}

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
-import { generatePDF, calcPricing } from '../../utils/quotePDF'
+import { generatePDF, calcPricing, formatMoney } from '../../utils/quotePDF'
 import './AdminQuotes.css'
 import { generateAgreementPDF } from '../../utils/documentPDF'
 import { TIER_KEYS, TIER_META, CARE_PLAN, buildDefaultPlans, emptyPlans, resolveCategory } from '../../data/quoteTiers'
 import { PROJECT_CATEGORIES, ADDON_CATALOG, CARE_PLANS, formatPriceRange } from '../../data/quoteCatalog2026'
 import { suggestRecommendation, buildRecommendation, detectCategory } from '../../data/quoteRecommendation'
+import { LEAD_SCORE_META, SUGGESTED_ACTION_LABEL } from '../../data/leadScore'
 
 const CATALOG = ADDON_CATALOG
 
@@ -43,6 +44,8 @@ const defaultWizard = () => ({
   currency: 'USD',
   exchangeRate: 1,
   adminNotes: '',
+  proposalCopy: null,
+  proposalDirty: false,
 })
 
 const fmt = (n, sym) => `${sym}${Math.round(n).toLocaleString('es-AR')}`
@@ -52,7 +55,10 @@ export default function AdminQuotes() {
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
   const [filter, setFilter]     = useState('')
+  const [scoreFilter, setScoreFilter] = useState('')
   const [toast, setToast]       = useState('')
+  const [shareBusy, setShareBusy] = useState(false)
+  const [discoveryDraft, setDiscoveryDraft] = useState({ scheduledAt: '', notes: '', done: false })
 
   // Wizard
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -73,12 +79,13 @@ export default function AdminQuotes() {
     if (!confirm(`¿Confirmar inicio de proyecto para ${quote.clientName}?\nSe generará el acuerdo de trabajo y se registrará el cliente en el sistema.`)) return
     setStarting(true)
     try {
-      await api.post('/clients', {
+      const res = await api.post('/clients', {
         quoteRef:    quote._id,
         clientName:  quote.clientName,
         email:       quote.email,
         projectType: quote.projectType,
         tech:        quote.projectName || '',
+        projectName: quote.projectName || '',
         finalPrice:  quote.finalPrice,
         currency:    quote.currency || 'USD',
         deadline:    quote.deadline,
@@ -93,7 +100,12 @@ export default function AdminQuotes() {
         } : undefined,
       })
       await api.put(`/quotes/${quote._id}`, { stage: 'activo' })
-      notify('Proyecto iniciado ✓ — Cliente registrado en el sistema')
+      if (res.data.portalPath && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(`${window.location.origin}${res.data.portalPath}`)
+        notify('Proyecto iniciado ✓ — Link del portal copiado')
+      } else {
+        notify('Proyecto iniciado ✓ — Cliente registrado en el sistema')
+      }
       load()
       generateAgreementPDF(quote, settings)
     } catch {
@@ -129,7 +141,63 @@ export default function AdminQuotes() {
     api.get('/settings').then(r => setSettings(r.data)).catch(() => {})
   }, [])
 
-  const filtered = filter ? quotes.filter(q => q.status === filter) : quotes
+  const filtered = quotes.filter((q) => {
+    if (filter && q.status !== filter) return false
+    if (scoreFilter && q.leadScore !== scoreFilter) return false
+    return true
+  })
+
+  useEffect(() => {
+    if (!selected) return
+    setDiscoveryDraft({
+      scheduledAt: selected.discovery?.scheduledAt || '',
+      notes: selected.discovery?.notes || '',
+      done: Boolean(selected.discovery?.done),
+    })
+  }, [selected?._id])
+
+  const saveDiscovery = async () => {
+    if (!selected) return
+    try {
+      const res = await api.put(`/quotes/${selected._id}`, { discovery: discoveryDraft })
+      setSelected(res.data)
+      setQuotes((list) => list.map((q) => (q._id === res.data._id ? res.data : q)))
+      notify('Discovery guardado')
+    } catch {
+      notify('No pude guardar discovery')
+    }
+  }
+
+  const shareProposalLink = async () => {
+    if (!selected) return
+    setShareBusy(true)
+    try {
+      const res = await api.post(`/quotes/${selected._id}/share-link`)
+      const path = res.data.path || `/propuesta/${res.data.token}`
+      const url = `${window.location.origin}${path}`
+      setSelected(res.data.quote)
+      setQuotes((list) => list.map((q) => (q._id === res.data.quote._id ? res.data.quote : q)))
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+        notify('Link copiado al portapapeles')
+      } else {
+        notify(url)
+      }
+    } catch (err) {
+      notify(err.response?.data?.message || 'No pude generar el link')
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
+  const setLeadScore = async (leadScore) => {
+    if (!selected) return
+    const suggestedAction =
+      leadScore === 'green' ? 'contactar' : leadScore === 'red' ? 'archivar' : 'pedir_info'
+    const res = await api.put(`/quotes/${selected._id}`, { leadScore, suggestedAction })
+    setSelected(res.data)
+    setQuotes((list) => list.map((q) => (q._id === res.data._id ? res.data : q)))
+  }
 
   // ── Wizard ───────────────────────────────────────────────────────────────
   const openWizard = (lead) => {
@@ -166,6 +234,8 @@ export default function AdminQuotes() {
         currency:       lead.currency || 'USD',
         exchangeRate:   lead.exchangeRate || 1,
         adminNotes:     lead.adminNotes || '',
+        proposalCopy:   lead.proposalCopy || null,
+        proposalDirty:  Boolean(lead.proposalCopy?.headline),
       })
     } else if (lead.features?.length > 0 || lead.projectName) {
       const plans = buildDefaultPlans(category)
@@ -188,6 +258,8 @@ export default function AdminQuotes() {
         currency:       lead.currency || 'USD',
         exchangeRate:   lead.exchangeRate || 1,
         adminNotes:     lead.adminNotes || '',
+        proposalCopy:   lead.proposalCopy || null,
+        proposalDirty:  Boolean(lead.proposalCopy?.headline),
       })
     } else {
       const preset = defaultWizard()
@@ -198,6 +270,8 @@ export default function AdminQuotes() {
         recommendedPlan: suggestion.plan,
         activeTier: suggestion.plan,
         premiumType: suggestion.premiumType,
+        proposalCopy: lead.proposalCopy || null,
+        proposalDirty: Boolean(lead.proposalCopy?.headline),
       })
     }
     setStep(0)
@@ -323,18 +397,65 @@ export default function AdminQuotes() {
   }))
 
   const recPlan = pricedPlans.find((p) => p.key === (wd.recommendedPlan || 'media')) || pricedPlans[1]
-  const recCopy = selected ? buildRecommendation(selected, {
+  const autoRecCopy = selected ? buildRecommendation(selected, {
     plan: wd.recommendedPlan || 'media',
     projectCategory: wd.projectCategory,
     premiumType: wd.premiumType,
     careIncluded: wd.carePlanIncluded,
   }) : null
+  const recCopy = wd.proposalCopy || autoRecCopy
+
+  // Sembrar / refrescar texto automático si el usuario no lo editó
+  useEffect(() => {
+    if (!wizardOpen || step !== 3 || !selected || !autoRecCopy) return
+    setWd((w) => {
+      if (w.proposalDirty && w.proposalCopy) return w
+      return { ...w, proposalCopy: autoRecCopy, proposalDirty: false }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambia el contexto de la propuesta
+  }, [wizardOpen, step, selected?._id, wd.recommendedPlan, wd.projectCategory, wd.premiumType, wd.carePlanIncluded])
+
+  const patchProposal = (patch) => {
+    setWd((w) => ({
+      ...w,
+      proposalDirty: true,
+      proposalCopy: { ...(w.proposalCopy || autoRecCopy || {}), ...patch },
+    }))
+  }
+
+  const patchProposalSection = (index, field, value) => {
+    setWd((w) => {
+      const base = w.proposalCopy || autoRecCopy
+      if (!base) return w
+      const sections = (base.sections || []).map((s, i) => (
+        i === index ? { ...s, [field]: value } : s
+      ))
+      return { ...w, proposalDirty: true, proposalCopy: { ...base, sections } }
+    })
+  }
+
+  const patchProposalFaq = (index, field, value) => {
+    setWd((w) => {
+      const base = w.proposalCopy || autoRecCopy
+      if (!base) return w
+      const faqs = (base.faqs || []).map((f, i) => (
+        i === index ? { ...f, [field]: value } : f
+      ))
+      return { ...w, proposalDirty: true, proposalCopy: { ...base, faqs } }
+    })
+  }
+
+  const resetProposalCopy = () => {
+    if (!autoRecCopy) return
+    setWd((w) => ({ ...w, proposalCopy: autoRecCopy, proposalDirty: false }))
+    notify('Texto restablecido al automático')
+  }
 
   const saveQuote = async () => {
     setSaving(true)
     try {
       const plans = serializedPlans()
-      await api.put(`/quotes/${selected._id}`, {
+      const payload = {
         projectName: wd.projectName,
         clientLogo: wd.clientLogo,
         discount: wd.discount,
@@ -359,8 +480,11 @@ export default function AdminQuotes() {
         revisions: recPlan.revisions,
         basePrice:  Math.round(recPlan.base),
         finalPrice: Math.round(recPlan.final),
+        proposalCopy: wd.proposalCopy || autoRecCopy || null,
         status: selected.status === 'pending' ? 'quoted' : selected.status,
-      })
+      }
+      await api.put(`/quotes/${selected._id}`, payload)
+      setSelected((s) => (s ? { ...s, ...payload } : s))
       notify('Cotización guardada ✓')
       load()
       closeWizard()
@@ -368,7 +492,14 @@ export default function AdminQuotes() {
     finally { setSaving(false) }
   }
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
+    const proposalCopy = wd.proposalCopy || autoRecCopy || null
+    // Guardar el texto editado antes de bajar el PDF
+    try {
+      await api.put(`/quotes/${selected._id}`, { proposalCopy })
+      setSelected((s) => (s ? { ...s, proposalCopy } : s))
+    } catch { /* igual generamos el PDF con el texto actual */ }
+
     generatePDF({
       ...selected,
       ...wd,
@@ -380,6 +511,7 @@ export default function AdminQuotes() {
       finalPrice: Math.round(recPlan.final),
       basePrice: Math.round(recPlan.base),
       selectedPlan: wd.recommendedPlan || 'media',
+      proposalCopy,
       carePlan: {
         included: wd.carePlanIncluded,
         tier: wd.carePlanTier || 'intermedio',
@@ -421,6 +553,20 @@ export default function AdminQuotes() {
             </button>
           ))}
         </div>
+        <div className="filter-tabs" style={{ marginTop: 8 }}>
+          <button className={`filter-tab ${!scoreFilter ? 'filter-tab--active' : ''}`} onClick={() => setScoreFilter('')}>
+            Score: todos
+          </button>
+          {Object.entries(LEAD_SCORE_META).map(([key, meta]) => (
+            <button
+              key={key}
+              className={`filter-tab ${scoreFilter === key ? 'filter-tab--active' : ''}`}
+              onClick={() => setScoreFilter(key)}
+            >
+              {meta.emoji} {meta.label} ({quotes.filter((q) => q.leadScore === key).length})
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="quotes-layout">
@@ -445,6 +591,13 @@ export default function AdminQuotes() {
                 <span className="qstatus-dot" style={{ background: STATUS_COLOR[q.status] }} title={STATUS_LABEL[q.status]} />
               </div>
               <div className="quote-item__bottom">
+                {q.leadScore && LEAD_SCORE_META[q.leadScore] && (
+                  <span className="tag" title={LEAD_SCORE_META[q.leadScore].hint} style={{ borderColor: LEAD_SCORE_META[q.leadScore].color }}>
+                    {LEAD_SCORE_META[q.leadScore].emoji} {LEAD_SCORE_META[q.leadScore].label}
+                  </span>
+                )}
+                {q.contract?.acceptedAt && <span className="tag">Contrato</span>}
+                {q.onboarding?.submittedAt && <span className="tag">Onboarding</span>}
                 <span className="tag">{q.projectType}</span>
                 {q.plans?.length === 3 ? (
                   <span className="quote-item__price">
@@ -487,6 +640,11 @@ export default function AdminQuotes() {
                     <i className="fas fa-file-pdf" /> PDF
                   </button>
                 )}
+                {(selected.finalPrice || selected.plans?.length) && (
+                  <button className="btn btn-outline btn-sm" onClick={shareProposalLink} disabled={shareBusy}>
+                    <i className="fas fa-link" /> {shareBusy ? 'Generando…' : 'Link aceptar'}
+                  </button>
+                )}
                 {selected.status === 'accepted' && selected.stage !== 'activo' && (
                   <button
                     className="btn btn-sm"
@@ -524,7 +682,12 @@ export default function AdminQuotes() {
 
               {selected.carePlan?.included !== false && (selected.finalPrice || selected.plans?.length) ? (
                 <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  + Mantenimiento {selected.carePlan?.tier || 'intermedio'} · USD {selected.carePlan?.price || 55}/mes
+                  + Mantenimiento {selected.carePlan?.tier || 'intermedio'} ·{' '}
+                  {formatMoney(
+                    CARE_PLANS[selected.carePlan?.tier]?.price || selected.carePlan?.price || 55,
+                    selected.currency || 'USD',
+                    selected.exchangeRate,
+                  ).perMonth}
                 </p>
               ) : null}
 
@@ -539,10 +702,163 @@ export default function AdminQuotes() {
                 {selected.revisions && <div className="quote-detail__field"><label>Revisiones</label><span>{selected.revisions}</span></div>}
               </div>
 
+              <div className="quote-detail__section">
+                <label>Calificación del lead</label>
+                <div className="quote-status-buttons" style={{ marginBottom: 10 }}>
+                  {Object.entries(LEAD_SCORE_META).map(([key, meta]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`quote-status-btn ${selected.leadScore === key ? 'quote-status-btn--active' : ''}`}
+                      style={{ '--c': meta.color }}
+                      onClick={() => setLeadScore(key)}
+                    >
+                      {meta.emoji} {meta.label}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  Acción sugerida:{' '}
+                  <strong>{SUGGESTED_ACTION_LABEL[selected.suggestedAction] || selected.suggestedAction || '—'}</strong>
+                </p>
+                {selected.leadScoreReasons?.length > 0 && (
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, color: 'var(--text-faint)', fontSize: '0.84rem' }}>
+                    {selected.leadScoreReasons.map((r) => <li key={r}>{r}</li>)}
+                  </ul>
+                )}
+                {selected.acceptToken && (
+                  <p style={{ marginTop: 10, fontSize: '0.82rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    Link público: <a href={`/propuesta/${selected.acceptToken}`} target="_blank" rel="noreferrer">/propuesta/{selected.acceptToken.slice(0, 8)}…</a>
+                  </p>
+                )}
+                {selected.acceptance?.acceptedAt && (
+                  <p style={{ marginTop: 8, fontSize: '0.84rem', color: '#22c55e' }}>
+                    Aceptada el {new Date(selected.acceptance.acceptedAt).toLocaleString('es-AR')}
+                    {selected.acceptance.selectedPlan ? ` · plan ${selected.acceptance.selectedPlan}` : ''}
+                  </p>
+                )}
+                {selected.status === 'accepted' && selected.acceptToken && (
+                  <p style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    Contrato:{' '}
+                    {selected.contract?.acceptedAt ? 'aceptado' : 'pendiente'} ·{' '}
+                    <a href={`/contrato/${selected.acceptToken}`} target="_blank" rel="noreferrer">abrir</a>
+                    {' · '}Onboarding:{' '}
+                    {selected.onboarding?.submittedAt ? 'enviado' : 'pendiente'} ·{' '}
+                    <a href={`/onboarding/${selected.acceptToken}`} target="_blank" rel="noreferrer">abrir</a>
+                  </p>
+                )}
+              </div>
+
+              <div className="quote-detail__section">
+                <label>Discovery / reunión</label>
+                <div className="grid-2" style={{ gap: 12 }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Fecha / horario</label>
+                    <input
+                      className="form-control"
+                      placeholder="Ej: martes 10:00"
+                      value={discoveryDraft.scheduledAt}
+                      onChange={(e) => setDiscoveryDraft((d) => ({ ...d, scheduledAt: e.target.value }))}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0, display: 'flex', alignItems: 'flex-end' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={discoveryDraft.done}
+                        onChange={(e) => setDiscoveryDraft((d) => ({ ...d, done: e.target.checked }))}
+                      />
+                      Reunión hecha
+                    </label>
+                  </div>
+                </div>
+                <div className="form-group" style={{ marginTop: 10 }}>
+                  <label className="form-label">Notas</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    placeholder="Alcance, dudas, próximos pasos…"
+                    value={discoveryDraft.notes}
+                    onChange={(e) => setDiscoveryDraft((d) => ({ ...d, notes: e.target.value }))}
+                  />
+                </div>
+                <button type="button" className="btn btn-outline btn-sm" onClick={saveDiscovery}>
+                  Guardar discovery
+                </button>
+              </div>
+
+              <div className="quote-detail__grid">
+                {selected.business && <div className="quote-detail__field"><label>Negocio</label><span>{selected.business}</span></div>}
+                {selected.objective && <div className="quote-detail__field"><label>Objetivo</label><span>{selected.objective}</span></div>}
+                {selected.audience && <div className="quote-detail__field"><label>Público</label><span>{selected.audience}</span></div>}
+                {selected.launchDate && <div className="quote-detail__field"><label>Fecha ideal</label><span>{selected.launchDate}</span></div>}
+                {selected.presence && <div className="quote-detail__field"><label>Presencia online</label><span>{selected.presence}</span></div>}
+                {selected.servicesProducts && <div className="quote-detail__field"><label>Servicios/productos</label><span>{selected.servicesProducts}</span></div>}
+              </div>
+
+              {selected.need && (
+                <div className="quote-detail__section">
+                  <label>Problema / necesidad</label>
+                  <p>{selected.need}</p>
+                </div>
+              )}
+
               {selected.description && (
                 <div className="quote-detail__section">
-                  <label>Descripción del cliente</label>
+                  <label>Detalle del cliente</label>
                   <p>{selected.description}</p>
+                </div>
+              )}
+
+              {selected.requestedFeatures?.length > 0 && (
+                <div className="quote-detail__section">
+                  <label>Funcionalidades pedidas</label>
+                  <p>{selected.requestedFeatures.join(' · ')}</p>
+                </div>
+              )}
+
+              {selected.infra && Object.values(selected.infra).some(Boolean) && (
+                <div className="quote-detail__section">
+                  <label>Infraestructura actual</label>
+                  <p>
+                    {Object.entries(selected.infra)
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(' · ')}
+                  </p>
+                </div>
+              )}
+
+              {selected.needs && Object.values(selected.needs).some(Boolean) && (
+                <div className="quote-detail__section">
+                  <label>Necesidades extra</label>
+                  <p>
+                    {Object.entries(selected.needs)
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(' · ')}
+                  </p>
+                </div>
+              )}
+
+              {selected.successMetric && (
+                <div className="quote-detail__section">
+                  <label>Éxito / KPI</label>
+                  <p>{selected.successMetric}</p>
+                </div>
+              )}
+
+              {selected.outOfScope && (
+                <div className="quote-detail__section">
+                  <label>Fuera de alcance</label>
+                  <p>{selected.outOfScope}</p>
+                </div>
+              )}
+
+              {selected.references && (
+                <div className="quote-detail__section">
+                  <label>Referencias</label>
+                  <p>{selected.references}</p>
                 </div>
               )}
 
@@ -932,7 +1248,7 @@ export default function AdminQuotes() {
                           onClick={() => setWd(w => ({ ...w, carePlanTier: plan.key }))}
                         >
                           <strong>{plan.label}</strong>
-                          <em>USD {plan.price}/mes</em>
+                          <em>{formatMoney(plan.price, wd.currency, wd.exchangeRate).perMonth}</em>
                           <small>{formatPriceRange(plan.priceRange)}</small>
                         </button>
                       ))}
@@ -975,45 +1291,106 @@ export default function AdminQuotes() {
 
                   {wd.carePlanIncluded && (
                     <div className="wcare-preview">
-                      <strong>Mantenimiento {careTier.label} · {fmt(careTier.price * (wd.exchangeRate || 1), sym)} {wd.currency}/mes</strong>
+                      <strong>Mantenimiento {careTier.label} · {formatMoney(careTier.price, wd.currency, wd.exchangeRate).perMonth}</strong>
                       <p>{careTier.includes.join(' · ')}</p>
                     </div>
                   )}
 
                   {recCopy && (
-                    <div className="wrec-copy">
+                    <div className="wrec-copy wrec-copy--edit">
                       <div className="wfeatures-header">
-                        <h4 className="wstep-title" style={{ fontSize: '1rem' }}>{recCopy.headline}</h4>
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            const text = [
-                              recCopy.headline,
-                              recCopy.intro,
-                              ...recCopy.sections.map((s) => `${s.title}\n${s.body}`),
-                              'Preguntas frecuentes',
-                              ...recCopy.faqs.map((f) => `${f.q}\n${f.a}`),
-                            ].join('\n\n')
-                            navigator.clipboard.writeText(text)
-                            notify('Texto copiado para WhatsApp o mail')
-                          }}
-                        >
-                          Copiar texto
-                        </button>
+                        <h4 className="wstep-title" style={{ fontSize: '1rem', margin: 0 }}>
+                          Texto de la propuesta
+                          {wd.proposalDirty ? <span className="wrec-dirty"> · editado</span> : null}
+                        </h4>
+                        <div className="wrec-actions">
+                          <button type="button" className="btn btn-outline btn-sm" onClick={resetProposalCopy}>
+                            Restablecer
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            onClick={() => {
+                              const text = [
+                                recCopy.headline,
+                                recCopy.intro,
+                                ...(recCopy.sections || []).map((s) => `${s.title}\n${s.body}`),
+                                'Preguntas frecuentes',
+                                ...(recCopy.faqs || []).map((f) => `${f.q}\n${f.a}`),
+                              ].join('\n\n')
+                              navigator.clipboard.writeText(text)
+                              notify('Texto copiado para WhatsApp o mail')
+                            }}
+                          >
+                            Copiar texto
+                          </button>
+                        </div>
                       </div>
-                      <p className="wtier-hint">{recCopy.intro}</p>
-                      {recCopy.sections.map((s) => (
-                        <div key={s.title} className="wrec-block">
-                          <strong>{s.title}</strong>
-                          <p>{s.body}</p>
+                      <p className="wtier-hint" style={{ marginBottom: 12 }}>
+                        Editá lo que haga falta. Se guarda con la cotización y se usa en el PDF.
+                      </p>
+
+                      <label className="wrec-field">
+                        Título
+                        <input
+                          className="form-control"
+                          value={recCopy.headline || ''}
+                          onChange={(e) => patchProposal({ headline: e.target.value })}
+                        />
+                      </label>
+                      <label className="wrec-field">
+                        Intro
+                        <textarea
+                          className="form-control"
+                          rows={3}
+                          value={recCopy.intro || ''}
+                          onChange={(e) => patchProposal({ intro: e.target.value })}
+                        />
+                      </label>
+
+                      {(recCopy.sections || []).map((s, i) => (
+                        <div key={`sec-${i}`} className="wrec-block wrec-block--edit">
+                          <label className="wrec-field">
+                            Sección {i + 1} — título
+                            <input
+                              className="form-control"
+                              value={s.title || ''}
+                              onChange={(e) => patchProposalSection(i, 'title', e.target.value)}
+                            />
+                          </label>
+                          <label className="wrec-field">
+                            Texto
+                            <textarea
+                              className="form-control"
+                              rows={3}
+                              value={s.body || ''}
+                              onChange={(e) => patchProposalSection(i, 'body', e.target.value)}
+                            />
+                          </label>
                         </div>
                       ))}
+
+                      <h5 className="wrec-faq-title">Preguntas frecuentes</h5>
                       <div className="wrec-faqs">
-                        {recCopy.faqs.map((f) => (
-                          <div key={f.q} className="wrec-block">
-                            <strong>{f.q}</strong>
-                            <p>{f.a}</p>
+                        {(recCopy.faqs || []).map((f, i) => (
+                          <div key={`faq-${i}`} className="wrec-block wrec-block--edit">
+                            <label className="wrec-field">
+                              Pregunta
+                              <input
+                                className="form-control"
+                                value={f.q || ''}
+                                onChange={(e) => patchProposalFaq(i, 'q', e.target.value)}
+                              />
+                            </label>
+                            <label className="wrec-field">
+                              Respuesta
+                              <textarea
+                                className="form-control"
+                                rows={2}
+                                value={f.a || ''}
+                                onChange={(e) => patchProposalFaq(i, 'a', e.target.value)}
+                              />
+                            </label>
                           </div>
                         ))}
                       </div>

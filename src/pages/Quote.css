@@ -301,6 +301,72 @@
   color: var(--text);
 }
 
+.quote-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.quote-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.quote-feature i {
+  color: var(--text-faint);
+  width: 1em;
+}
+
+.quote-feature:hover {
+  border-color: rgba(232, 20, 30, 0.4);
+  color: var(--text);
+}
+
+.quote-feature--on {
+  border-color: var(--primary);
+  background: var(--primary-muted);
+  color: var(--text);
+}
+
+.quote-feature--on i {
+  color: var(--primary);
+}
+
+.quote-infra {
+  display: grid;
+  gap: 16px;
+}
+
+.quote-infra__label {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .quote-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-step__label {
+    font-size: 0.65rem;
+    max-width: 72px;
+  }
+}
+
 .quote-step-content h3 {
   font-size: 1.05rem;
   color: var(--text);

@@ -1,12 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SettingsProvider } from './context/SettingsContext'
+import { DEMOS_ENABLED } from './data/siteContent'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import Projects from './pages/Projects'
+import ProjectDetail from './pages/ProjectDetail'
+import Solutions from './pages/Solutions'
+import Demos from './pages/Demos'
+import Care from './pages/Care'
 import Quote from './pages/Quote'
+import AcceptProposal from './pages/AcceptProposal'
+import AcceptContract from './pages/AcceptContract'
+import ClientOnboarding from './pages/ClientOnboarding'
+import ClientPortal from './pages/ClientPortal'
 import Login from './pages/Login'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminProjects from './pages/admin/AdminProjects'
@@ -16,6 +26,7 @@ import AdminClients from './pages/admin/AdminClients'
 import ProjectDemo from './pages/demos/ProjectDemo'
 import ScrollToHash from './components/ScrollToHash'
 import WhatsAppFloat from './components/WhatsAppFloat'
+import SmoothScroll from './components/SmoothScroll'
 
 const adminEnabled = import.meta.env.VITE_ENABLE_ADMIN === 'true'
 
@@ -34,8 +45,11 @@ function PrivateRoute({ children }) {
 function PublicLayout({ children }) {
   return (
     <>
+      <a className="skip-link" href="#contenido">
+        Saltar al contenido
+      </a>
       <Navbar />
-      {children}
+      <div id="contenido">{children}</div>
       <Footer />
       <WhatsAppFloat />
     </>
@@ -46,28 +60,44 @@ export default function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-      <BrowserRouter>
-        <ScrollToHash />
-        <Routes>
-          <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-          <Route path="/proyectos" element={<PublicLayout><Projects /></PublicLayout>} />
-          <Route path="/cotizar" element={<PublicLayout><Quote /></PublicLayout>} />
-          <Route path="/demo/:slug" element={<ProjectDemo />} />
+        <SmoothScroll>
+          <BrowserRouter>
+            <ScrollToHash />
+            <Routes>
+              <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+              <Route path="/soluciones" element={<PublicLayout><Solutions /></PublicLayout>} />
+              <Route
+                path="/demos"
+                element={DEMOS_ENABLED ? <PublicLayout><Demos /></PublicLayout> : <Navigate to="/proyectos" replace />}
+              />
+              <Route path="/proyectos" element={<PublicLayout><Projects /></PublicLayout>} />
+              <Route path="/proyectos/:slug" element={<PublicLayout><ProjectDetail /></PublicLayout>} />
+              <Route path="/cuidado" element={<PublicLayout><Care /></PublicLayout>} />
+              <Route path="/cotizar" element={<PublicLayout><Quote /></PublicLayout>} />
+              <Route path="/propuesta/:token" element={<PublicLayout><AcceptProposal /></PublicLayout>} />
+              <Route path="/contrato/:token" element={<PublicLayout><AcceptContract /></PublicLayout>} />
+              <Route path="/onboarding/:token" element={<PublicLayout><ClientOnboarding /></PublicLayout>} />
+              <Route path="/portal/:token" element={<PublicLayout><ClientPortal /></PublicLayout>} />
+              <Route
+                path="/demo/:slug"
+                element={DEMOS_ENABLED ? <ProjectDemo /> : <Navigate to="/proyectos" replace />}
+              />
 
-          {adminEnabled && (
-            <>
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
-              <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
-              <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
-              <Route path="/admin/clientes" element={<PrivateRoute><AdminClients /></PrivateRoute>} />
-              <Route path="/admin/configuracion" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
-            </>
-          )}
+              {adminEnabled && (
+                <>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+                  <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
+                  <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
+                  <Route path="/admin/clientes" element={<PrivateRoute><AdminClients /></PrivateRoute>} />
+                  <Route path="/admin/configuracion" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
+                </>
+              )}
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </SmoothScroll>
       </SettingsProvider>
     </AuthProvider>
   )

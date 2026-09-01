@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// documentPDF.js — Generador de documentos para el flujo de clientes
-// Mismo estilo visual que quotePDF.js (branding GB.Dev)
+// documentPDF.js — Plantilla compartida de documentos GB.Dev
+// (cotización, brief, acuerdo, revisiones, entrega, guía, mantenimiento)
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { downloadHtmlAsPdf, pdfFilename } from './pdfDownload.js'
 
 const today = () =>
   new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -9,7 +11,22 @@ const today = () =>
 const docNumber = () => String(Date.now()).slice(-6)
 
 // ── HTML base compartido por todos los documentos ────────────────────────────
-function baseHTML({ title, clientName, docLabel, docNum, content, settings = {} }) {
+export function baseHTML({
+  clientName,
+  docLabel,
+  docNum,
+  content,
+  settings = {},
+  includeSignature = true,
+  infoLeft,
+  infoRight,
+  metaSub,
+  extraCss = '',
+}) {
+  const left = infoLeft || { label: 'Cliente', value: clientName, sub: '' }
+  const right = infoRight || { label: 'Documento', value: docLabel, sub: today() }
+  const headerSub = metaSub || today()
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -19,13 +36,20 @@ function baseHTML({ title, clientName, docLabel, docNum, content, settings = {} 
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     @page { size: A4; margin: 0; }
-    body {
+    html, body {
+      width: 794px;
+      max-width: 794px;
+      margin: 0;
+      background: #fff;
+      color: #1a1a1a;
       font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-      background: #fff; color: #1a1a1a;
-      font-size: 13px; line-height: 1.6;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      font-size: 13px;
+      line-height: 1.6;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      overflow: visible;
     }
-    table.layout { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .pdf-root { width: 794px; max-width: 794px; background: #fff; }
     .header-main {
       background: #0f0f0f; color: #fff;
       padding: 26px 48px 22px;
@@ -45,21 +69,44 @@ function baseHTML({ title, clientName, docLabel, docNum, content, settings = {} 
       background: #fafafa; border-top: 1px solid #efefef;
       padding: 12px 48px;
       display: flex; justify-content: space-between; align-items: center;
+      page-break-before: avoid; break-before: avoid;
+      page-break-inside: avoid; break-inside: avoid;
     }
     .footer-brand { font-size: 13px; font-weight: 900; color: #0f0f0f; }
     .footer-brand .dot { color: #e8141e; }
     .footer-contact { font-size: 11px; color: #999; text-align: right; }
-    .body-cell { padding: 36px 48px; }
+    .body-cell { padding: 36px 48px 28px; }
     .section-title {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.15em; color: #e8141e;
       margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;
+      page-break-after: avoid; break-after: avoid;
     }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f0; }
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f0;
+      page-break-inside: avoid; break-inside: avoid;
+    }
     .info-block .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #999; margin-bottom: 5px; }
     .info-block .value { font-size: 16px; font-weight: 700; color: #0f0f0f; }
     .info-block .sub   { font-size: 12px; color: #666; margin-top: 2px; }
-    .content-section { margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid; }
+    /* Long sections may span pages; never force whole blocks onto one page */
+    .content-section { margin-bottom: 24px; page-break-inside: auto; break-inside: auto; }
+    .avoid-break,
+    .item-row,
+    .term-item,
+    .highlight-box,
+    .plan-card,
+    .care,
+    .signature-row { page-break-inside: avoid; break-inside: avoid; }
+    h3, h4, .rec-box h3, .rec-box h4 {
+      page-break-after: avoid; break-after: avoid;
+    }
+    /* Allow text to flow across A4 pages — avoid clipping mid-sentence */
+    p, .rec-box p, li {
+      orphans: 2; widows: 2;
+      page-break-inside: auto; break-inside: auto;
+    }
     .item-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-bottom: 1px solid #f5f5f5; font-size: 12px; gap: 16px; }
     .item-row:last-child { border-bottom: none; }
     .item-name { color: #2a2a2a; flex: 1; }
@@ -82,68 +129,76 @@ function baseHTML({ title, clientName, docLabel, docNum, content, settings = {} 
     p { font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 12px; }
     ul { margin: 8px 0 16px 20px; }
     ul li { font-size: 12px; color: #555; line-height: 1.7; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    ${extraCss}
+    @media print {
+      html, body, .pdf-root { width: 210mm; max-width: 210mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
-<table class="layout">
-  <thead><tr><td>
-    <div class="header-main">
+  <div class="pdf-root">
+    <header class="header-main">
       <div>
         <div class="brand-logo"><span class="gb">GB</span><span class="dot">.</span><span class="dev">Dev</span></div>
         <div class="brand-sub">${settings.title || 'Desarrollador Web Full Stack'}</div>
       </div>
       <div class="doc-meta-header">
         <div class="doc-label">${docLabel}</div>
-        <div class="doc-date">${today()}</div>
+        <div class="doc-date">${headerSub}</div>
         <div class="doc-num">#${docNum}</div>
       </div>
-    </div>
+    </header>
     <div class="accent-bar"></div>
-  </td></tr></thead>
-  <tfoot><tr><td>
-    <div class="footer-bar">
+    <main class="body-cell">
+      <div class="info-grid">
+        <div class="info-block">
+          <div class="label">${left.label}</div>
+          <div class="value">${left.value}</div>
+          ${left.sub ? `<div class="sub">${left.sub}</div>` : ''}
+        </div>
+        <div class="info-block">
+          <div class="label">${right.label}</div>
+          <div class="value">${right.value}</div>
+          ${right.sub ? `<div class="sub">${right.sub}</div>` : ''}
+        </div>
+      </div>
+      ${content}
+      ${includeSignature ? `
+      <div class="signature-row">
+        <div class="sig-block">
+          <div class="sig-label">Firma del cliente</div>
+          <div class="sig-name">${clientName}</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-label">Firma del desarrollador</div>
+          <div class="sig-name">${settings.name || 'GB.Dev'}</div>
+        </div>
+      </div>` : ''}
+    </main>
+    <footer class="footer-bar">
       <div class="footer-brand">GB<span class="dot">.</span>Dev${settings.name ? ` — ${settings.name}` : ''}</div>
       <div class="footer-contact">${settings.email || ''}${settings.location ? `<br>${settings.location}` : ''}</div>
-    </div>
-  </td></tr></tfoot>
-  <tbody><tr><td class="body-cell">
-    <div class="info-grid">
-      <div class="info-block">
-        <div class="label">Cliente</div>
-        <div class="value">${clientName}</div>
-      </div>
-      <div class="info-block">
-        <div class="label">Documento</div>
-        <div class="value">${docLabel}</div>
-        <div class="sub">${today()}</div>
-      </div>
-    </div>
-    ${content}
-    <div class="signature-row">
-      <div class="sig-block">
-        <div class="sig-label">Firma del cliente</div>
-        <div class="sig-name">${clientName}</div>
-      </div>
-      <div class="sig-block">
-        <div class="sig-label">Firma del desarrollador</div>
-        <div class="sig-name">${settings.name || 'GB.Dev'}</div>
-      </div>
-    </div>
-  </td></tr></tbody>
-</table>
-<script>window.onload = () => { window.focus(); window.print(); }</script>
+    </footer>
+  </div>
 </body></html>`
 }
 
-function openDoc(html) {
-  const win = window.open('', '_blank', 'width=900,height=700')
-  win.document.write(html)
-  win.document.close()
+function openDoc(html, filename) {
+  return downloadHtmlAsPdf(html, filename)
 }
 
 // ── 1. Brief de descubrimiento ───────────────────────────────────────────────
-export function generateBriefPDF(quote, settings = {}) {
+export function buildBriefHTML(quote, settings = {}) {
+  const needLabel = { si: 'Sí', no: 'No', parcial: 'Parcial', ns: 'No sé' }
+  const needsRows = [
+    ['SEO', needLabel[quote.needs?.seo] || '—'],
+    ['PWA', needLabel[quote.needs?.pwa] || '—'],
+    ['Multiidioma', needLabel[quote.needs?.multilang] || '—'],
+    ['Integraciones', needLabel[quote.needs?.integrations] || '—'],
+  ]
+  const hasNeeds = needsRows.some(([, v]) => v && v !== '—')
+
   const content = `
     <div class="content-section">
       <div class="section-title">Datos del proyecto</div>
@@ -151,7 +206,8 @@ export function generateBriefPDF(quote, settings = {}) {
         ['Tipo de proyecto', quote.projectType || '—'],
         ['Presupuesto del cliente', quote.budget || 'A definir'],
         ['Plataforma / tecnología preferida', quote.tech || 'A definir'],
-        ['Plazo deseado', quote.deadline ? `${quote.deadline} días` : 'A definir'],
+        ['Plazo deseado', quote.launchDate || (quote.deadline ? `${quote.deadline} días` : 'A definir')],
+        ['Éxito / KPI', quote.successMetric || 'A definir en discovery'],
       ].map(([k, v]) => `
         <div class="item-row">
           <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
@@ -162,6 +218,20 @@ export function generateBriefPDF(quote, settings = {}) {
       <div class="section-title">Descripción del proyecto</div>
       <p>${quote.description || 'Sin descripción provista por el cliente.'}</p>
     </div>
+    ${quote.outOfScope ? `
+    <div class="content-section">
+      <div class="section-title">Fuera de alcance (esta etapa)</div>
+      <p>${quote.outOfScope}</p>
+    </div>` : ''}
+    ${hasNeeds ? `
+    <div class="content-section">
+      <div class="section-title">Necesidades extra</div>
+      ${needsRows.map(([k, v]) => `
+        <div class="item-row">
+          <span class="item-name" style="font-weight:600;color:#333;">${k}</span>
+          <span style="color:#555;">${v}</span>
+        </div>`).join('')}
+    </div>` : ''}
     <div class="content-section">
       <div class="section-title">Preguntas clave para la reunión de descubrimiento</div>
       ${[
@@ -170,8 +240,10 @@ export function generateBriefPDF(quote, settings = {}) {
         '¿Tenés referentes visuales o sitios que te gusten?',
         '¿Ya tenés dominio y hosting, o lo necesitás?',
         '¿Quién va a gestionar el contenido después de la entrega?',
+        '¿Quién aprueba cambios y con qué demora?',
         '¿Hay integraciones con sistemas existentes (CRM, ERP, etc.)?',
         '¿Cuáles son los KPIs de éxito del proyecto?',
+        '¿Qué queda explícitamente fuera de esta etapa?',
       ].map(q => `<div class="item-row"><span class="item-name">→ ${q}</span></div>`).join('')}
     </div>
     <div class="content-section">
@@ -179,11 +251,15 @@ export function generateBriefPDF(quote, settings = {}) {
       <p>${quote.adminNotes || quote.description || 'Sin notas aún.'}</p>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Brief de descubrimiento', clientName: quote.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Brief de descubrimiento', clientName: quote.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateBriefPDF(quote, settings = {}) {
+  return openDoc(buildBriefHTML(quote, settings), pdfFilename('Brief', quote.clientName))
 }
 
 // ── 2. Acuerdo de trabajo ────────────────────────────────────────────────────
-export function generateAgreementPDF(quote, settings = {}) {
+export function buildAgreementHTML(quote, settings = {}) {
   const sym = quote.currency === 'EUR' ? '€' : '$'
   const total = quote.finalPrice || 0
   const pay1 = Math.round(total * 0.4)
@@ -238,11 +314,15 @@ export function generateAgreementPDF(quote, settings = {}) {
       </div>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Acuerdo de trabajo', clientName: quote.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Acuerdo de trabajo', clientName: quote.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateAgreementPDF(quote, settings = {}) {
+  return openDoc(buildAgreementHTML(quote, settings), pdfFilename('Acuerdo', quote.clientName))
 }
 
 // ── 3. Acta de revisiones ────────────────────────────────────────────────────
-export function generateRevisionsPDF(client, revisions = [], settings = {}) {
+export function buildRevisionsHTML(client, revisions = [], settings = {}) {
   const approved  = revisions.filter(r => r.status === 'aprobado')
   const outscope  = revisions.filter(r => r.status === 'fuera-de-alcance')
   const pending   = revisions.filter(r => r.status === 'pendiente')
@@ -289,20 +369,26 @@ export function generateRevisionsPDF(client, revisions = [], settings = {}) {
       <p>Los cambios marcados como "Fuera de alcance" no están incluidos en el precio original del proyecto. Antes de implementarlos, se enviará un presupuesto adicional para aprobación del cliente.</p>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Acta de revisiones', clientName: client.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Acta de revisiones', clientName: client.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateRevisionsPDF(client, revisions = [], settings = {}) {
+  return openDoc(buildRevisionsHTML(client, revisions, settings), pdfFilename('Revisiones', client.clientName))
 }
 
 // ── 4. Acta de entrega ───────────────────────────────────────────────────────
-export function generateDeliveryPDF(client, settings = {}) {
+export function buildDeliveryHTML(client, settings = {}) {
   const sym = client.currency === 'EUR' ? '€' : '$'
   const total = client.finalPrice || 0
-  const half = Math.round(total / 2)
+  const pay1 = Math.round(total * 0.4)
+  const pay2 = Math.round(total * 0.3)
+  const pay3 = Math.round(total * 0.3)
 
   const content = `
     <div class="highlight-box">
       <div class="hl-label">Proyecto entregado en producción</div>
       <div class="hl-value" style="font-size:18px;">${client.productionUrl || 'URL a confirmar'}</div>
-      <div class="hl-sub">Tipo: ${client.projectType} · Pago final pendiente: ${sym}${half.toLocaleString('es-AR')} ${client.currency || 'USD'}</div>
+      <div class="hl-sub">Tipo: ${client.projectType} · Saldo contra entrega (30%): ${sym}${pay3.toLocaleString('es-AR')} ${client.currency || 'USD'}</div>
     </div>
     <div class="content-section">
       <div class="section-title">Detalles de la entrega</div>
@@ -329,18 +415,22 @@ export function generateDeliveryPDF(client, settings = {}) {
     </div>
     <div class="content-section">
       <div class="section-title">Condiciones de pago final</div>
-      <p>El cliente confirma su conformidad con el proyecto entregado y abonará el saldo restante de <strong>${sym}${half.toLocaleString('es-AR')} ${client.currency || 'USD'}</strong> al recibir este documento.</p>
+      <p>El cliente confirma su conformidad con el proyecto entregado y abonará el saldo restante de <strong>${sym}${pay3.toLocaleString('es-AR')} ${client.currency || 'USD'}</strong> (30% contra entrega) al recibir este documento.</p>
     </div>
     <div class="content-section">
       <div class="section-title">Garantía post-entrega</div>
       <p>Se incluye una garantía de 15 días para corrección de bugs funcionales. No incluye nuevas funcionalidades ni cambios de diseño.</p>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Acta de entrega', clientName: client.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Acta de entrega', clientName: client.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateDeliveryPDF(client, settings = {}) {
+  return openDoc(buildDeliveryHTML(client, settings), pdfFilename('Entrega', client.clientName))
 }
 
 // ── 5. Guía de uso / capacitación ───────────────────────────────────────────
-export function generateUserGuidePDF(client, settings = {}) {
+export function buildUserGuideHTML(client, settings = {}) {
   const content = `
     <div class="content-section">
       <div class="section-title">Tu nuevo sitio / aplicación</div>
@@ -387,11 +477,15 @@ export function generateUserGuidePDF(client, settings = {}) {
       <p>Si en el futuro necesitás nuevas funcionalidades, actualizaciones o mantenimiento mensual, no dudes en contactarme. Tengo planes de mantenimiento adaptados a cada proyecto.</p>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Guía de uso', clientName: client.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Guía de uso', clientName: client.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateUserGuidePDF(client, settings = {}) {
+  return openDoc(buildUserGuideHTML(client, settings), pdfFilename('Guia', client.clientName))
 }
 
 // ── 6. Propuesta de mantenimiento ────────────────────────────────────────────
-export function generateMaintenancePDF(client, plan = {}, settings = {}) {
+export function buildMaintenanceHTML(client, plan = {}, settings = {}) {
   const sym = client.currency === 'EUR' ? '€' : '$'
   const price = plan.price || 0
 
@@ -450,5 +544,9 @@ export function generateMaintenancePDF(client, plan = {}, settings = {}) {
       </div>
     </div>
   `
-  openDoc(baseHTML({ docLabel: 'Propuesta de mantenimiento', clientName: client.clientName, docNum: docNumber(), content, settings }))
+  return baseHTML({ docLabel: 'Propuesta de mantenimiento', clientName: client.clientName, docNum: docNumber(), content, settings })
+}
+
+export function generateMaintenancePDF(client, plan = {}, settings = {}) {
+  return openDoc(buildMaintenanceHTML(client, plan, settings), pdfFilename('Mantenimiento', client.clientName))
 }

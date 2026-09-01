@@ -1,15 +1,38 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import api from '../hooks/useApi'
 import { useSettings } from '../context/SettingsContext'
 import { whatsappHref } from '../utils/whatsapp'
+import {
+  EMPTY_INFRA,
+  EMPTY_NEEDS,
+  FEATURE_OPTIONS,
+  INFRA_ANSWERS,
+  INFRA_QUESTIONS,
+  NEED_FLAGS,
+} from '../data/quoteBrief'
+import { scrollToId } from '../components/ScrollToHash'
+import Seo from '../seo/Seo'
 import './Quote.css'
+
+const TOTAL_STEPS = 5
 
 const EMPTY_FORM = {
   objective: '',
   business: '',
+  need: '',
+  audience: '',
+  servicesProducts: '',
   details: '',
+  requestedFeatures: [],
+  infra: { ...EMPTY_INFRA },
+  needs: { ...EMPTY_NEEDS },
+  successMetric: '',
+  outOfScope: '',
   presence: '',
   budget: '',
+  launchDate: '',
+  references: '',
   name: '',
   email: '',
   whatsapp: '',
@@ -27,11 +50,29 @@ const formatWhatsApp = (value) => {
 
 const OBJECTIVE_LABEL = {
   mostrar_contacto: 'Mostrar mi negocio y que me contacten',
-  vender_online:    'Vender productos online',
+  vender_online: 'Vender productos online',
   pedidos_delivery: 'Recibir y gestionar pedidos',
-  procesos_internos:'Gestionar procesos internos',
-  asesoramiento:    'Asesoramiento / No estoy seguro',
+  agendar_turnos: 'Agendar turnos / reservas',
+  procesos_internos: 'Gestionar procesos internos',
+  asesoramiento: 'Asesoramiento / No estoy seguro',
 }
+
+const STEP_META = [
+  { label: 'Objetivo', sub: 'Qué necesitás lograr con el proyecto.' },
+  { label: 'Negocio', sub: 'Rubro, problema y a quién le hablás.' },
+  { label: 'Funciones', sub: 'Marcá lo que creés que vas a necesitar.' },
+  { label: 'Situación', sub: 'Infraestructura, presupuesto y plazos.' },
+  { label: 'Contacto', sub: 'Cómo te escribo la propuesta.' },
+]
+
+const OBJECTIVES = [
+  { id: 'mostrar_contacto', label: 'Mostrar mi negocio y que me contacten', icon: 'fa-store', hint: 'Landing o sitio institucional' },
+  { id: 'vender_online', label: 'Vender productos online con cobro automático', icon: 'fa-shopping-cart', hint: 'Tienda online' },
+  { id: 'pedidos_delivery', label: 'Recibir y gestionar pedidos (restaurant, delivery…)', icon: 'fa-motorcycle', hint: 'Plataforma de pedidos' },
+  { id: 'agendar_turnos', label: 'Que me reserven turnos solos (peluquería, consultorio…)', icon: 'fa-calendar-check', hint: 'Turnero online' },
+  { id: 'procesos_internos', label: 'Gestionar procesos internos (stock, ventas…)', icon: 'fa-cogs', hint: 'Sistema a medida' },
+  { id: 'asesoramiento', label: 'No estoy seguro (necesito asesoramiento)', icon: 'fa-comments', hint: 'Te oriento yo' },
+]
 
 export default function Quote() {
   const settings = useSettings()
@@ -42,19 +83,33 @@ export default function Quote() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [touched, setTouched] = useState({})
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  // Tras enviar (o al cambiar de paso), subir el scroll: Lenis deja la vista abajo.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => scrollToId('', 'smooth'))
+    return () => window.cancelAnimationFrame(frame)
+  }, [submitted, step])
 
-  const stepLabel = useMemo(() => {
-    if (step === 1) return 'Objetivo'
-    if (step === 2) return 'Contexto'
-    return 'Contacto'
-  }, [step])
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const setInfra = (key, value) => setForm((f) => ({ ...f, infra: { ...f.infra, [key]: value } }))
+  const setNeed = (key, value) => setForm((f) => ({ ...f, needs: { ...f.needs, [key]: value } }))
+
+  const toggleFeature = (id) => {
+    setForm((f) => {
+      const has = f.requestedFeatures.includes(id)
+      return {
+        ...f,
+        requestedFeatures: has
+          ? f.requestedFeatures.filter((x) => x !== id)
+          : [...f.requestedFeatures, id],
+      }
+    })
+  }
 
   const errors = useMemo(() => {
     const e = {}
     if (!form.objective) e.objective = 'Elegí una opción para poder orientarte.'
     if (!form.business.trim()) e.business = 'Este dato me ayuda a entender tu rubro.'
-    if (!form.details.trim()) e.details = 'Contame un poco más para armar una propuesta a medida.'
+    if (!form.need.trim()) e.need = 'Contame el problema o la necesidad principal.'
     if (!form.name.trim()) e.name = 'Escribí tu nombre.'
     if (!form.email.trim()) e.email = 'Escribí tu email.'
     else if (!isEmail(form.email)) e.email = 'Revisá el email.'
@@ -62,11 +117,15 @@ export default function Quote() {
     return e
   }, [form])
 
-  const canGoStep2 = !errors.objective
-  const canGoStep3 = !errors.business && !errors.details
-  const canSubmit = !errors.name && !errors.email && !errors.whatsapp
+  const canStep = {
+    1: !errors.objective,
+    2: !errors.business && !errors.need,
+    3: true,
+    4: true,
+    5: !errors.name && !errors.email && !errors.whatsapp,
+  }
 
-  const next = () => setStep((s) => Math.min(3, s + 1))
+  const next = () => setStep((s) => Math.min(TOTAL_STEPS, s + 1))
   const prev = () => setStep((s) => Math.max(1, s - 1))
 
   const markTouched = (keys) => {
@@ -80,15 +139,17 @@ export default function Quote() {
   const handleNext = () => {
     if (step === 1) {
       markTouched(['objective'])
-      if (!canGoStep2) return
+      if (!canStep[1]) return
       next()
       return
     }
     if (step === 2) {
-      markTouched(['business', 'details'])
-      if (!canGoStep3) return
+      markTouched(['business', 'need'])
+      if (!canStep[2]) return
       next()
+      return
     }
+    next()
   }
 
   const resetForm = () => {
@@ -96,12 +157,17 @@ export default function Quote() {
     setStep(1)
     setTouched({})
     setSubmitError('')
-    setForm(EMPTY_FORM)
+    setForm({
+      ...EMPTY_FORM,
+      infra: { ...EMPTY_INFRA },
+      needs: { ...EMPTY_NEEDS },
+      requestedFeatures: [],
+    })
   }
 
   const handleSubmit = async () => {
     markTouched(['name', 'email', 'whatsapp'])
-    if (!canSubmit) return
+    if (!canStep[5]) return
 
     setSubmitting(true)
     setSubmitError('')
@@ -111,11 +177,21 @@ export default function Quote() {
         email: form.email.trim(),
         whatsapp: formatWhatsApp(form.whatsapp),
         projectType: OBJECTIVE_LABEL[form.objective] || form.objective,
-        description: form.details.trim(),
+        description: form.details.trim() || form.need.trim(),
         budget: form.budget,
         objective: form.objective,
         business: form.business.trim(),
         presence: form.presence,
+        need: form.need.trim(),
+        audience: form.audience.trim(),
+        servicesProducts: form.servicesProducts.trim(),
+        requestedFeatures: form.requestedFeatures,
+        infra: form.infra,
+        needs: form.needs,
+        successMetric: form.successMetric.trim(),
+        outOfScope: form.outOfScope.trim(),
+        launchDate: form.launchDate.trim(),
+        references: form.references.trim(),
         source: 'portfolio_onboarding',
       })
       setSubmitted(true)
@@ -130,12 +206,18 @@ export default function Quote() {
   if (submitted) {
     return (
       <main className="quote-page">
+        <Seo
+          title="Solicitud enviada"
+          description="Recibimos tu brief. Te armamos una propuesta personalizada en 24–48 hs hábiles."
+          path="/cotizar"
+          noindex
+        />
         <section className="page-hero texture-bg">
           <div className="container page-hero__content">
             <p className="section-label">Listo</p>
             <h1 className="page-hero__title">¡Gracias!</h1>
             <p className="page-hero__sub">
-              En base a lo que nos contaste, te voy a preparar una propuesta personalizada.
+              Con este brief ya puedo orientarte mejor. Te preparo una propuesta personalizada.
             </p>
           </div>
         </section>
@@ -144,8 +226,10 @@ export default function Quote() {
           <div className="quote-success__icon" aria-hidden>
             <i className="fas fa-check-circle" />
           </div>
-          <h2>Gracias 🙌</h2>
-          <p>Si querés acelerar, escribinme por WhatsApp y coordinamos.</p>
+          <h2>¡Gracias! Recibimos tu solicitud</h2>
+          <p>
+            Te respondo en 24–48 hs hábiles. Si querés acelerar, escribinos por WhatsApp.
+          </p>
           <div className="quote-success__actions">
             <a
               className="btn btn-whatsapp"
@@ -155,26 +239,33 @@ export default function Quote() {
             >
               <i className="fab fa-whatsapp" /> WhatsApp
             </a>
-            <a className="btn btn-outline" href={`mailto:${settings.email || 'gianbuzzelatto@gmail.com'}?subject=Consulta%20desde%20portfolio`}>
-              <i className="fas fa-envelope" /> Enviar email
-            </a>
+            <Link to="/proyectos" className="btn btn-outline">
+              Ver casos
+            </Link>
           </div>
-          <button className="btn btn-dark mt-3" onClick={resetForm}>
-            Enviar otra consulta
+          <button type="button" className="btn btn-dark mt-3" onClick={resetForm}>
+            Enviar otra solicitud
           </button>
         </div>
       </main>
     )
   }
 
+  const meta = STEP_META[step - 1]
+
   return (
     <main className="quote-page">
+      <Seo
+        title="Quiero mi proyecto"
+        description="Brief para calificar tu proyecto: objetivo, funcionalidades, infraestructura y presupuesto. Respuesta en 24–48 hs hábiles."
+        path="/cotizar"
+      />
       <section className="page-hero texture-bg">
         <div className="container page-hero__content">
-          <p className="section-label">Propuesta</p>
-          <h1 className="page-hero__title">Pedí presupuesto para tu web o sistema</h1>
+          <p className="section-label">Brief</p>
+          <h1 className="page-hero__title">Quiero mi proyecto</h1>
           <p className="page-hero__sub">
-            Brief corto, sin compromiso. Te respondo en 24–48 hs hábiles con una propuesta clara.
+            No es un formulario de contacto: es un brief corto para entender tu negocio y armarte una propuesta concreta.
           </p>
         </div>
       </section>
@@ -183,56 +274,46 @@ export default function Quote() {
         <div className="quote-progress">
           <div className="quote-progress__top">
             <p className="quote-progress__title">
-              Paso <strong>{step}</strong> de <strong>3</strong>
+              Paso <strong>{step}</strong> de <strong>{TOTAL_STEPS}</strong>
               <span className="quote-progress__dot" aria-hidden>·</span>
-              <span className="quote-progress__step">{stepLabel}</span>
+              <span className="quote-progress__step">{meta.label}</span>
             </p>
-            <p className="quote-progress__sub">
-              {step === 1
-                ? 'Elegí el objetivo principal. Esto define la mejor estrategia.'
-                : step === 2
-                  ? 'Un poco de contexto para que la propuesta sea precisa.'
-                  : 'Dejame tus datos y te respondo dentro de 24–48 hs hábiles.'}
-            </p>
+            <p className="quote-progress__sub">{meta.sub}</p>
           </div>
 
           <div className="quote-steps" aria-label="Progreso del formulario">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`quote-step ${step >= s ? 'quote-step--active' : ''} ${step > s ? 'quote-step--done' : ''} ${step === s ? 'quote-step--current' : ''}`}
-              >
-                <div className="quote-step__row">
-                  <div className="quote-step__num">{step > s ? <i className="fas fa-check" /> : s}</div>
-                  {s < 3 && (
-                    <div
-                      className={`quote-step__connector ${step > s ? 'quote-step__connector--done' : ''}`}
-                      aria-hidden
-                    />
-                  )}
+            {STEP_META.map((s, idx) => {
+              const n = idx + 1
+              return (
+                <div
+                  key={s.label}
+                  className={`quote-step ${step >= n ? 'quote-step--active' : ''} ${step > n ? 'quote-step--done' : ''} ${step === n ? 'quote-step--current' : ''}`}
+                >
+                  <div className="quote-step__row">
+                    <div className="quote-step__num">{step > n ? <i className="fas fa-check" /> : n}</div>
+                    {n < TOTAL_STEPS && (
+                      <div
+                        className={`quote-step__connector ${step > n ? 'quote-step__connector--done' : ''}`}
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                  <span className="quote-step__label">{s.label}</span>
                 </div>
-                <span className="quote-step__label">{s === 1 ? 'Objetivo' : s === 2 ? 'Contexto' : 'Contacto'}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
         <div className="quote-body">
           {step === 1 && (
             <div className="quote-step-content animate-fadeInUp">
-              <h2>¿Qué necesitás?</h2>
+              <h2>¿Cuál es tu objetivo?</h2>
               <p className="quote-microcopy">
-                Elegí la opción más parecida. Así te recomiendo el tipo de proyecto correcto antes de hablar de precios.
+                Elegí la opción más parecida. Así oriento el tipo de solución antes de hablar de precio.
               </p>
-
               <div className="quote-choice-grid" role="group" aria-label="Objetivo">
-                {[
-                  { id: 'mostrar_contacto', label: 'Mostrar mi negocio y que me contacten', icon: 'fa-store', hint: 'Landing o sitio institucional' },
-                  { id: 'vender_online', label: 'Vender productos online con cobro automático', icon: 'fa-shopping-cart', hint: 'E-commerce' },
-                  { id: 'pedidos_delivery', label: 'Recibir y gestionar pedidos (restaurant, delivery…)', icon: 'fa-motorcycle', hint: 'Plataforma de pedidos' },
-                  { id: 'procesos_internos', label: 'Gestionar procesos internos (stock, ventas…)', icon: 'fa-cogs', hint: 'Sistema a medida' },
-                  { id: 'asesoramiento', label: 'No estoy seguro (necesito asesoramiento)', icon: 'fa-comments', hint: 'Te oriento yo' },
-                ].map((opt) => (
+                {OBJECTIVES.map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
@@ -251,9 +332,7 @@ export default function Quote() {
                   </button>
                 ))}
               </div>
-
               {touched.objective && errors.objective && <p className="quote-error">{errors.objective}</p>}
-
               <div className="quote-nav">
                 <span />
                 <button type="button" className="btn btn-primary" onClick={handleNext}>
@@ -265,16 +344,16 @@ export default function Quote() {
 
           {step === 2 && (
             <div className="quote-step-content animate-fadeInUp">
-              <h2>Contame un poco para orientarme</h2>
+              <h2>Contame de tu negocio</h2>
               <p className="quote-microcopy">
-                Con 2–3 frases alcanza. Esto me ayuda a proponerte la mejor solución y estimar tiempos.
+                Con esto entiendo el problema real — no solo “quiero una web”.
               </p>
 
               <div className="form-group">
-                <label className="form-label">¿A qué se dedica tu negocio? *</label>
+                <label className="form-label">Empresa / negocio *</label>
                 <input
                   className={`form-control ${touched.business && errors.business ? 'form-control--error' : ''}`}
-                  placeholder="Ej: perfumería, metalúrgica, estudio contable…"
+                  placeholder="Ej: peluquería en Palermo, fábrica de velas, consultorio…"
                   value={form.business}
                   onChange={(e) => set('business', e.target.value)}
                   onBlur={() => setTouched((t) => ({ ...t, business: true }))}
@@ -283,19 +362,167 @@ export default function Quote() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Contame un poco más sobre lo que necesitás *</label>
+                <label className="form-label">¿Qué problema querés solucionar? *</label>
                 <textarea
-                  className={`form-control ${touched.details && errors.details ? 'form-control--error' : ''}`}
-                  rows={5}
-                  placeholder={`Ej: "Tengo Instagram, pero me escriben y no cierro ventas. Quiero una web simple con servicios, casos y un formulario que llegue a WhatsApp. También me interesa que cargue rápido en celular."`}
-                  value={form.details}
-                  onChange={(e) => set('details', e.target.value)}
-                  onBlur={() => setTouched((t) => ({ ...t, details: true }))}
+                  className={`form-control ${touched.need && errors.need ? 'form-control--error' : ''}`}
+                  rows={3}
+                  placeholder='Ej: "Me escriben por Instagram y se pierden los pedidos / turnos."'
+                  value={form.need}
+                  onChange={(e) => set('need', e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, need: true }))}
                 />
-                {touched.details && errors.details && <p className="quote-error">{errors.details}</p>}
+                {touched.need && errors.need && <p className="quote-error">{errors.need}</p>}
               </div>
 
               <div className="form-group">
+                <label className="form-label">¿A quién le hablás? (público objetivo)</label>
+                <input
+                  className="form-control"
+                  placeholder="Ej: vecinos del barrio, pymes, clientas de 25–45…"
+                  value={form.audience}
+                  onChange={(e) => set('audience', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Servicios o productos principales</label>
+                <input
+                  className="form-control"
+                  placeholder="Ej: cortes y color; velas aromáticas; delivery de hamburguesas…"
+                  value={form.servicesProducts}
+                  onChange={(e) => set('servicesProducts', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Algo más que quieras aclarar (opcional)</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  placeholder="Detalles, restricciones, ideas…"
+                  value={form.details}
+                  onChange={(e) => set('details', e.target.value)}
+                />
+              </div>
+
+              <div className="quote-nav">
+                <button type="button" className="btn btn-outline" onClick={prev}>
+                  <i className="fas fa-arrow-left" /> Atrás
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleNext}>
+                  Siguiente <i className="fas fa-arrow-right" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="quote-step-content animate-fadeInUp">
+              <h2>¿Qué funcionalidades te interesan?</h2>
+              <p className="quote-microcopy">
+                Marcá todo lo que suene útil. Después afinamos qué entra y qué no.
+              </p>
+              <div className="quote-feature-grid" role="group" aria-label="Funcionalidades">
+                {FEATURE_OPTIONS.map((opt) => {
+                  const on = form.requestedFeatures.includes(opt.id)
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`quote-feature ${on ? 'quote-feature--on' : ''}`}
+                      onClick={() => toggleFeature(opt.id)}
+                      aria-pressed={on}
+                    >
+                      <i className={`fas ${on ? 'fa-check-square' : 'fa-square'}`} aria-hidden />
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="quote-nav">
+                <button type="button" className="btn btn-outline" onClick={prev}>
+                  <i className="fas fa-arrow-left" /> Atrás
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleNext}>
+                  Siguiente <i className="fas fa-arrow-right" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="quote-step-content animate-fadeInUp">
+              <h2>Situación actual y plazos</h2>
+              <p className="quote-microcopy">
+                Esto define si arrancamos rápido o si hay que sumar identidad, contenido u hosting.
+              </p>
+
+              <div className="quote-infra">
+                {INFRA_QUESTIONS.map((q) => (
+                  <div key={q.id} className="quote-infra__row">
+                    <p className="quote-infra__label">{q.label}</p>
+                    <div className="quote-pill-group" role="group" aria-label={q.label}>
+                      {INFRA_ANSWERS.map((ans) => (
+                        <button
+                          key={ans.id}
+                          type="button"
+                          className={`quote-pill ${form.infra[q.id] === ans.id ? 'quote-pill--selected' : ''}`}
+                          onClick={() => setInfra(q.id, ans.id)}
+                        >
+                          {ans.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="form-group" style={{ marginTop: 22 }}>
+                <label className="form-label">¿Necesitás algo de esto? (opcional)</label>
+                <p className="quote-hint">Sirve para no olvidar SEO, idiomas o integraciones en la propuesta.</p>
+                <div className="quote-infra">
+                  {NEED_FLAGS.map((q) => (
+                    <div key={q.id} className="quote-infra__row">
+                      <p className="quote-infra__label">{q.label}</p>
+                      <div className="quote-pill-group" role="group" aria-label={q.label}>
+                        {INFRA_ANSWERS.map((ans) => (
+                          <button
+                            key={ans.id}
+                            type="button"
+                            className={`quote-pill ${form.needs[q.id] === ans.id ? 'quote-pill--selected' : ''}`}
+                            onClick={() => setNeed(q.id, ans.id)}
+                          >
+                            {ans.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">¿Cómo medirías el éxito? (opcional)</label>
+                <input
+                  className="form-control"
+                  placeholder="Ej: más consultas por WhatsApp, vender online, menos trabajo manual…"
+                  value={form.successMetric}
+                  onChange={(e) => set('successMetric', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">¿Qué NO debería entrar en esta etapa? (opcional)</label>
+                <textarea
+                  className="form-control"
+                  rows={2}
+                  placeholder="Ej: app móvil nativa, multiidioma, integración con un ERP…"
+                  value={form.outOfScope}
+                  onChange={(e) => set('outOfScope', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginTop: 22 }}>
                 <label className="form-label">¿Ya tenés presencia online? (opcional)</label>
                 <div className="quote-pill-group" role="group" aria-label="Presencia online">
                   {[
@@ -307,10 +534,7 @@ export default function Quote() {
                       key={opt.id}
                       type="button"
                       className={`quote-pill ${form.presence === opt.id ? 'quote-pill--selected' : ''}`}
-                      onClick={() => {
-                        set('presence', opt.id)
-                        setTouched((t) => ({ ...t, presence: true }))
-                      }}
+                      onClick={() => set('presence', opt.id)}
                     >
                       {opt.label}
                     </button>
@@ -319,7 +543,7 @@ export default function Quote() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">¿Tenés un presupuesto estimado? (opcional)</label>
+                <label className="form-label">Presupuesto estimado (opcional)</label>
                 <div className="quote-pill-group" role="group" aria-label="Presupuesto estimado">
                   {[
                     { id: 'hasta_500', label: 'Hasta USD 500' },
@@ -341,6 +565,27 @@ export default function Quote() {
                 <p className="quote-hint">Sirve para sugerirte la opción más conveniente. No es un compromiso.</p>
               </div>
 
+              <div className="form-group">
+                <label className="form-label">Fecha ideal de lanzamiento (opcional)</label>
+                <input
+                  className="form-control"
+                  placeholder="Ej: antes de diciembre / en 30 días / sin apuro"
+                  value={form.launchDate}
+                  onChange={(e) => set('launchDate', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Webs de referencia (opcional)</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  placeholder="Links o nombres de sitios que te gusten y por qué."
+                  value={form.references}
+                  onChange={(e) => set('references', e.target.value)}
+                />
+              </div>
+
               <div className="quote-nav">
                 <button type="button" className="btn btn-outline" onClick={prev}>
                   <i className="fas fa-arrow-left" /> Atrás
@@ -352,11 +597,11 @@ export default function Quote() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 5 && (
             <div className="quote-step-content animate-fadeInUp">
               <h2>¿Cómo te contacto?</h2>
               <p className="quote-microcopy">
-                Te respondo dentro de 24–48 hs hábiles con una propuesta simple y clara.
+                Te respondo dentro de 24–48 hs hábiles con una propuesta clara.
               </p>
 
               <div className="form-group">
@@ -385,7 +630,6 @@ export default function Quote() {
                   />
                   {touched.name && errors.name && <p className="quote-error">{errors.name}</p>}
                 </div>
-
                 <div className="form-group">
                   <label className="form-label">Email *</label>
                   <input
@@ -413,7 +657,7 @@ export default function Quote() {
                 <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
                   {submitting ? 'Enviando…' : (
                     <>
-                      <i className="fas fa-paper-plane" /> Solicitar propuesta
+                      <i className="fas fa-paper-plane" /> Enviar brief
                     </>
                   )}
                 </button>

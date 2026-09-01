@@ -5,6 +5,7 @@ const OBJECTIVE_TO_NEED = {
   mostrar_contacto: 'contacto',
   vender_online: 'ventas',
   pedidos_delivery: 'pedidos',
+  agendar_turnos: 'agenda',
   procesos_internos: 'operacion',
   asesoramiento: 'orientacion',
   mas_clientes: 'contacto',
@@ -14,6 +15,7 @@ const OBJECTIVE_TO_NEED = {
   'Mostrar mi negocio y que me contacten': 'contacto',
   'Vender productos online': 'ventas',
   'Recibir y gestionar pedidos': 'pedidos',
+  'Agendar turnos / reservas': 'agenda',
   'Gestionar procesos internos': 'operacion',
   'Asesoramiento / No estoy seguro': 'orientacion',
 }
@@ -22,6 +24,7 @@ const OBJECTIVE_TO_CATEGORY = {
   mostrar_contacto: 'landing',
   vender_online: 'ecommerce',
   pedidos_delivery: 'pedidos',
+  agendar_turnos: 'turnero',
   procesos_internos: 'sistema',
   asesoramiento: 'institucional',
   mas_clientes: 'landing',
@@ -56,7 +59,8 @@ export function detectCategory(lead = {}) {
     return cat
   }
 
-  if (/sistema|erp|inventario|stock|turno|reporte|excel/i.test(text)) return 'sistema'
+  if (/turno|agenda|cita|peluquer|est[eé]tica|consultorio|veterinar/i.test(text)) return 'turnero'
+  if (/sistema|erp|inventario|stock|reporte|excel/i.test(text)) return 'sistema'
   if (/tienda|e-?commerce|mercadopago|carrito/i.test(text)) return 'ecommerce'
   if (/landing|una p[aá]gina|whatsapp/i.test(text)) return 'landing'
 
@@ -72,15 +76,16 @@ export function suggestRecommendation(lead = {}) {
   if (budget === 'hasta_500') plan = 'base'
   else if (budget === '2500_plus') plan = 'premium'
   else if (budget === '1000_2500' && ['ecommerce', 'pedidos', 'sistema'].includes(category)) plan = 'media'
-  else if (budget === '500_1000' && category === 'landing') plan = 'premium'
+  else if (budget === '500_1000' && (category === 'landing' || category === 'turnero')) plan = 'premium'
 
   if (detectNeed(lead) === 'operacion') plan = 'media'
   if (detectNeed(lead) === 'pedidos' && plan === 'base') plan = 'media'
+  if (detectNeed(lead) === 'agenda' && plan === 'base' && budget !== 'hasta_500') plan = 'media'
 
   return {
     plan,
     projectCategory: category,
-    premiumType: category === 'sistema' ? 'sistema' : category === 'pedidos' ? 'pedidos' : category === 'ecommerce' ? 'tienda' : 'tienda',
+    premiumType: category === 'sistema' || category === 'turnero' ? 'sistema' : category === 'pedidos' ? 'pedidos' : category === 'ecommerce' ? 'tienda' : 'tienda',
     categoryLabel: cat.label,
     fitFor: cat.fitFor,
     notFor: cat.notFor,
@@ -149,6 +154,14 @@ function howItHelps(plan, projectCategory, need, business) {
         : `Tracking en vivo y reportes te muestran qué vende más y cómo va la operación en tiempo real.`
   }
 
+  if (projectCategory === 'turnero') {
+    return plan === 'base'
+      ? `Dejás de acomodar horarios a mano: el cliente elige un hueco libre y ${b} ve la agenda del día sin pelearse con el chat.`
+      : plan === 'media'
+        ? `Varios servicios o profesionales, con bloqueos y feriados. Menos turnos dobles y menos “¿el martes a las 16?”.`
+        : `Recordatorios y un panel más completo bajan las ausencias y te dejan ver cancelaciones y notas sin Excel.`
+  }
+
   return plan === 'base'
     ? `Ordenás 1-2 procesos críticos de ${b} (inventario, ventas, etc.) en un solo lugar con usuarios y roles.`
     : plan === 'media'
@@ -167,6 +180,9 @@ function howToUse(plan, projectCategory) {
   }
   if (projectCategory === 'pedidos') {
     return 'Publicás menú o catálogo. El cliente pide, paga si corresponde, y el pedido entra al panel para preparar y entregar. Podés avisar por WhatsApp automático.'
+  }
+  if (projectCategory === 'turnero') {
+    return 'Compartís el link. El cliente elige servicio, día y hora. Vos abrís la agenda, ves quién viene y podés bloquear horarios cuando no atiendas.'
   }
   return 'Entrás con usuario y contraseña. Cargás o consultás la info del día según el módulo. Tu equipo usa la misma pantalla.'
 }
@@ -203,6 +219,9 @@ function brandImpact(plan, projectCategory, business) {
   if (projectCategory === 'pedidos') {
     return 'Pedir online con tiempos y confirmaciones transmite orden. El cliente percibe un negocio que controla la operación, no uno improvisado.'
   }
+  if (projectCategory === 'turnero') {
+    return `Reservar online dice que ${b} está organizado: hay horarios, hay confirmación, no se improvisa por chat a las 23 hs.`
+  }
   return `Hacia afuera, menos demoras. Hacia adentro, ${b} se profesionaliza: menos depender de una sola persona que “tiene todo en la cabeza”.`
 }
 
@@ -210,7 +229,7 @@ function faqs(plan, projectCategory, careIncluded) {
   const list = [
     {
       q: '¿Cuánto me involucra a mí?',
-      a: projectCategory === 'sistema'
+      a: projectCategory === 'sistema' || projectCategory === 'turnero'
         ? 'Al inicio definimos qué datos entran al sistema. Después lo usás en el día a día. El desarrollo y la configuración técnica los hago yo.'
         : 'Me pasás textos, fotos y qué querés destacar. El armado, dominio y publicación los resuelvo yo. Tu tiempo va a contenido, no a código.',
     },

@@ -23,6 +23,11 @@
   justify-content: space-between;
 }
 
+.navbar nav {
+  display: flex;
+  align-items: center;
+}
+
 .navbar__brand {
   font-family: var(--font-display);
   font-size: 1.15rem;

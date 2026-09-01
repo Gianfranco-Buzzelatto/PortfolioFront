@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Seo from '../../seo/Seo'
 import './AdminLayout.css'
 
 const navItems = [
@@ -21,6 +22,7 @@ export default function AdminLayout({ children, title }) {
 
   return (
     <div className="admin-layout">
+      <Seo title={title || 'Admin'} path="/admin" noindex />
       {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : ''}`}>
         <div className="admin-sidebar__brand">
