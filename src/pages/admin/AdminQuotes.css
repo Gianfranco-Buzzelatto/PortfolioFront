@@ -1,6 +1,61 @@
 /* ── FILTER TABS ─────────────────────────────────────────────────────────── */
 .quotes-header { margin-bottom: 24px; }
 
+.quotes-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.quotes-header__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+.quote-detail__nocontact { font-size: 0.85rem; color: var(--text-faint); }
+
+/* ── ALTA MANUAL ─────────────────────────────────────────────────────────── */
+.nq-toggle {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 18px;
+  padding: 10px 0;
+  background: none; border: none;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem; font-weight: 600;
+  cursor: pointer;
+}
+.nq-toggle:hover { color: var(--text); }
+
+.nq-brief {
+  margin-top: 6px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.nq-section {
+  margin: 22px 0 10px;
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.nq-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.nq-error {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--primary-muted);
+  border: 1px solid rgba(232, 20, 30, 0.28);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.nq-error i { color: var(--primary); margin-right: 6px; }
+
 .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .filter-tab {

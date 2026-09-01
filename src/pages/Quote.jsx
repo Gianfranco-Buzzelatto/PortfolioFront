@@ -4,12 +4,16 @@ import api from '../hooks/useApi'
 import { useSettings } from '../context/SettingsContext'
 import { whatsappHref } from '../utils/whatsapp'
 import {
+  BUDGET_OPTIONS,
   EMPTY_INFRA,
   EMPTY_NEEDS,
   FEATURE_OPTIONS,
   INFRA_ANSWERS,
   INFRA_QUESTIONS,
   NEED_FLAGS,
+  OBJECTIVES,
+  OBJECTIVE_LABEL,
+  PRESENCE_OPTIONS,
 } from '../data/quoteBrief'
 import { scrollToId } from '../components/ScrollToHash'
 import Seo from '../seo/Seo'
@@ -48,30 +52,12 @@ const formatWhatsApp = (value) => {
   return (hasPlus ? '+' : '') + digits
 }
 
-const OBJECTIVE_LABEL = {
-  mostrar_contacto: 'Mostrar mi negocio y que me contacten',
-  vender_online: 'Vender productos online',
-  pedidos_delivery: 'Recibir y gestionar pedidos',
-  agendar_turnos: 'Agendar turnos / reservas',
-  procesos_internos: 'Gestionar procesos internos',
-  asesoramiento: 'Asesoramiento / No estoy seguro',
-}
-
 const STEP_META = [
   { label: 'Objetivo', sub: 'Qué necesitás lograr con el proyecto.' },
   { label: 'Negocio', sub: 'Rubro, problema y a quién le hablás.' },
   { label: 'Funciones', sub: 'Marcá lo que creés que vas a necesitar.' },
   { label: 'Situación', sub: 'Infraestructura, presupuesto y plazos.' },
   { label: 'Contacto', sub: 'Cómo te escribo la propuesta.' },
-]
-
-const OBJECTIVES = [
-  { id: 'mostrar_contacto', label: 'Mostrar mi negocio y que me contacten', icon: 'fa-store', hint: 'Landing o sitio institucional' },
-  { id: 'vender_online', label: 'Vender productos online con cobro automático', icon: 'fa-shopping-cart', hint: 'Tienda online' },
-  { id: 'pedidos_delivery', label: 'Recibir y gestionar pedidos (restaurant, delivery…)', icon: 'fa-motorcycle', hint: 'Plataforma de pedidos' },
-  { id: 'agendar_turnos', label: 'Que me reserven turnos solos (peluquería, consultorio…)', icon: 'fa-calendar-check', hint: 'Turnero online' },
-  { id: 'procesos_internos', label: 'Gestionar procesos internos (stock, ventas…)', icon: 'fa-cogs', hint: 'Sistema a medida' },
-  { id: 'asesoramiento', label: 'No estoy seguro (necesito asesoramiento)', icon: 'fa-comments', hint: 'Te oriento yo' },
 ]
 
 export default function Quote() {
@@ -525,11 +511,7 @@ export default function Quote() {
               <div className="form-group" style={{ marginTop: 22 }}>
                 <label className="form-label">¿Ya tenés presencia online? (opcional)</label>
                 <div className="quote-pill-group" role="group" aria-label="Presencia online">
-                  {[
-                    { id: 'no', label: 'No' },
-                    { id: 'si_mejorar', label: 'Sí, pero quiero mejorar' },
-                    { id: 'si_no_funciona', label: 'Sí, pero no funciona' },
-                  ].map((opt) => (
+                  {PRESENCE_OPTIONS.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
@@ -545,13 +527,7 @@ export default function Quote() {
               <div className="form-group">
                 <label className="form-label">Presupuesto estimado (opcional)</label>
                 <div className="quote-pill-group" role="group" aria-label="Presupuesto estimado">
-                  {[
-                    { id: 'hasta_500', label: 'Hasta USD 500' },
-                    { id: '500_1000', label: 'USD 500 – 1.000' },
-                    { id: '1000_2500', label: 'USD 1.000 – 2.500' },
-                    { id: '2500_plus', label: 'USD 2.500+' },
-                    { id: 'no_se', label: 'Aún no lo definí' },
-                  ].map((opt) => (
+                  {BUDGET_OPTIONS.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"

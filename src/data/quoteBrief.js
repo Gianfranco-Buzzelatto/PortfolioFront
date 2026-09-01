@@ -1,4 +1,67 @@
-/** Opciones del brief público /cotizar */
+/** Opciones del brief, compartidas por /cotizar y el alta manual del admin */
+
+/** `label` es lo que ve el cliente en el wizard; `type` es el texto corto que
+ *  queda guardado como `projectType` de la cotización. */
+export const OBJECTIVES = [
+  {
+    id: 'mostrar_contacto',
+    label: 'Mostrar mi negocio y que me contacten',
+    type: 'Mostrar mi negocio y que me contacten',
+    icon: 'fa-store',
+    hint: 'Landing o sitio institucional',
+  },
+  {
+    id: 'vender_online',
+    label: 'Vender productos online con cobro automático',
+    type: 'Vender productos online',
+    icon: 'fa-shopping-cart',
+    hint: 'Tienda online',
+  },
+  {
+    id: 'pedidos_delivery',
+    label: 'Recibir y gestionar pedidos (restaurant, delivery…)',
+    type: 'Recibir y gestionar pedidos',
+    icon: 'fa-motorcycle',
+    hint: 'Plataforma de pedidos',
+  },
+  {
+    id: 'agendar_turnos',
+    label: 'Que me reserven turnos solos (peluquería, consultorio…)',
+    type: 'Agendar turnos / reservas',
+    icon: 'fa-calendar-check',
+    hint: 'Turnero online',
+  },
+  {
+    id: 'procesos_internos',
+    label: 'Gestionar procesos internos (stock, ventas…)',
+    type: 'Gestionar procesos internos',
+    icon: 'fa-cogs',
+    hint: 'Sistema a medida',
+  },
+  {
+    id: 'asesoramiento',
+    label: 'No estoy seguro (necesito asesoramiento)',
+    type: 'Asesoramiento / No estoy seguro',
+    icon: 'fa-comments',
+    hint: 'Te oriento yo',
+  },
+]
+
+export const OBJECTIVE_LABEL = Object.fromEntries(OBJECTIVES.map((o) => [o.id, o.type]))
+
+export const PRESENCE_OPTIONS = [
+  { id: 'no', label: 'No' },
+  { id: 'si_mejorar', label: 'Sí, pero quiero mejorar' },
+  { id: 'si_no_funciona', label: 'Sí, pero no funciona' },
+]
+
+export const BUDGET_OPTIONS = [
+  { id: 'hasta_500', label: 'Hasta USD 500' },
+  { id: '500_1000', label: 'USD 500 – 1.000' },
+  { id: '1000_2500', label: 'USD 1.000 – 2.500' },
+  { id: '2500_plus', label: 'USD 2.500+' },
+  { id: 'no_se', label: 'Aún no lo definí' },
+]
 
 export const FEATURE_OPTIONS = [
   { id: 'landing', label: 'Landing page' },

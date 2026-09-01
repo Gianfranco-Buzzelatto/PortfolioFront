@@ -64,8 +64,8 @@ const EXTRA_FORMATION = [
 const TRUST = [
   { value: '24–48 hs', label: 'Respuesta', hint: 'Días hábiles, sin vueltas.' },
   { value: 'USD 180', label: 'Desde', hint: 'Landing lista para conseguir consultas.' },
-  { value: '4 casos', label: 'En el portfolio', hint: 'Gastronomía, retail y producto.' },
-  { value: 'BA', label: 'Buenos Aires', hint: 'Trabajo con pymes locales.' },
+  { value: '4', label: 'Proyectos entregados', hint: 'Gastronomía, retail y producto.' },
+  { value: 'AR', label: 'Argentina', hint: 'Próximamente, Sudamérica.' },
 ]
 
 const FAQS = [
@@ -158,7 +158,7 @@ export default function Home() {
 
       <section className="logos-strip" aria-label="Rubros con los que trabajo">
         <div className="container logos-strip__inner">
-          <p className="logos-strip__label">Casos en</p>
+          <p className="logos-strip__label">Proyectos en</p>
           <ul className="logos-strip__list">
             {CLIENT_MARKS.map((m) => (
               <li key={m.label}>
@@ -188,10 +188,10 @@ export default function Home() {
         <div className="container">
           <div className="section-header">
             <p className="section-label">Tu negocio</p>
-            <h2 className="section-title">Tu forma de trabajar. Nuestra solución.</h2>
+            <h2 className="section-title">Tu negocio puede encontrar la solución digitalizándose</h2>
             <div className="section-divider" />
             <p className="section-lead">
-              Empezamos por el problema, no por la tecnología.
+              Revisamos tu problema puntual y sugerimos lo que necesitás.
             </p>
           </div>
           <div className="pillars__grid">

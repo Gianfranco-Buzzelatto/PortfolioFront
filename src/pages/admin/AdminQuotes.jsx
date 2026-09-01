@@ -8,6 +8,7 @@ import { TIER_KEYS, TIER_META, CARE_PLAN, buildDefaultPlans, emptyPlans, resolve
 import { PROJECT_CATEGORIES, ADDON_CATALOG, CARE_PLANS, formatPriceRange } from '../../data/quoteCatalog2026'
 import { suggestRecommendation, buildRecommendation, detectCategory } from '../../data/quoteRecommendation'
 import { LEAD_SCORE_META, SUGGESTED_ACTION_LABEL } from '../../data/leadScore'
+import NewQuoteModal from './NewQuoteModal'
 
 const CATALOG = ADDON_CATALOG
 
@@ -27,6 +28,7 @@ const SYM = { USD: '$', ARS: '$', EUR: '€' }
 const STEP_LABELS = ['Cliente', 'Planes', 'Precio', 'Vista previa']
 
 const defaultWizard = () => ({
+  email: '',
   projectName: '',
   clientLogo: '',
   projectCategory: 'landing',
@@ -58,6 +60,7 @@ export default function AdminQuotes() {
   const [scoreFilter, setScoreFilter] = useState('')
   const [toast, setToast]       = useState('')
   const [shareBusy, setShareBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [discoveryDraft, setDiscoveryDraft] = useState({ scheduledAt: '', notes: '', done: false })
 
   // Wizard
@@ -134,6 +137,16 @@ export default function AdminQuotes() {
   const load = () => {
     setLoading(true)
     api.get('/quotes').then(r => setQuotes(r.data)).finally(() => setLoading(false))
+  }
+
+  /** Recién creada a mano: la dejamos arriba de la lista y seguimos directo al
+   *  wizard de precios, que es lo que se hace siempre después de cargarla. */
+  const handleCreated = (quote) => {
+    setQuotes((list) => [quote, ...list])
+    setCreating(false)
+    setFilter('')
+    notify('Cotización creada')
+    openWizard(quote)
   }
 
   useEffect(() => {
@@ -274,6 +287,8 @@ export default function AdminQuotes() {
         proposalDirty: Boolean(lead.proposalCopy?.headline),
       })
     }
+    // Las cargadas a mano pueden venir sin email y hace falta para el link.
+    setWd((w) => ({ ...w, email: lead.email || '' }))
     setStep(0)
     setWizardOpen(true)
   }
@@ -456,6 +471,7 @@ export default function AdminQuotes() {
     try {
       const plans = serializedPlans()
       const payload = {
+        email: wd.email.trim(),
         projectName: wd.projectName,
         clientLogo: wd.clientLogo,
         discount: wd.discount,
@@ -541,8 +557,18 @@ export default function AdminQuotes() {
     <AdminLayout title="Cotizaciones">
       {toast && <div className="toast success">{toast}</div>}
 
+      {creating && <NewQuoteModal onClose={() => setCreating(false)} onCreated={handleCreated} />}
+
       {/* Filtros */}
       <div className="quotes-header">
+        <div className="quotes-header__top">
+          <p className="quotes-header__hint">
+            {quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}
+          </p>
+          <button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>
+            <i className="fas fa-plus" /> Nueva cotización
+          </button>
+        </div>
         <div className="filter-tabs">
           <button className={`filter-tab ${!filter ? 'filter-tab--active' : ''}`} onClick={() => setFilter('')}>
             Todas ({quotes.length})
@@ -586,7 +612,7 @@ export default function AdminQuotes() {
                 <div className="quote-item__avatar">{q.clientName.charAt(0).toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p className="quote-item__name">{q.clientName}</p>
-                  <p className="quote-item__email">{q.email}</p>
+                  <p className="quote-item__email">{q.email || q.whatsapp || 'Sin contacto'}</p>
                 </div>
                 <span className="qstatus-dot" style={{ background: STATUS_COLOR[q.status] }} title={STATUS_LABEL[q.status]} />
               </div>
@@ -620,7 +646,15 @@ export default function AdminQuotes() {
                 <div className="quote-detail__avatar">{selected.clientName.charAt(0).toUpperCase()}</div>
                 <div>
                   <h2>{selected.clientName}</h2>
-                  <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                  {selected.email ? (
+                    <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                  ) : selected.whatsapp ? (
+                    <a href={`https://wa.me/${selected.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                      {selected.whatsapp}
+                    </a>
+                  ) : (
+                    <span className="quote-detail__nocontact">Sin contacto cargado</span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -981,7 +1015,12 @@ export default function AdminQuotes() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Email</label>
-                      <input className="form-control" value={selected.email} disabled />
+                      <input
+                        className="form-control"
+                        value={wd.email}
+                        onChange={e => setWd(w => ({ ...w, email: e.target.value }))}
+                        placeholder="Hace falta para generar el link de la propuesta"
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Nombre del proyecto</label>

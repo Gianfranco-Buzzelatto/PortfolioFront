@@ -147,6 +147,7 @@
 .logos-strip__inner {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 28px;
   flex-wrap: wrap;
 }
@@ -160,14 +161,17 @@
   margin: 0;
 }
 
+/* Sin `flex: 1` la lista mide lo que ocupan las tarjetas, así el
+   `justify-content` del contenedor centra el grupo completo (label + tarjetas)
+   y no sólo las tarjetas dentro del espacio sobrante. */
 .logos-strip__list {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   margin: 0;
   padding: 0;
-  flex: 1;
 }
 
 .logos-strip__list li {
@@ -998,5 +1002,5 @@
       ),
       linear-gradient(180deg, rgba(5, 5, 5, 0.4) 0%, transparent 50%, rgba(5, 5, 5, 0.55) 100%);
   }
-  .logos-strip__inner { flex-direction: column; align-items: flex-start; }
+  .logos-strip__inner { flex-direction: column; align-items: center; }
 }

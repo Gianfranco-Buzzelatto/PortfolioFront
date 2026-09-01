@@ -91,19 +91,19 @@ export const HOME_PILLARS = [
   {
     icon: 'fa-motorcycle',
     title: 'Recibir pedidos',
-    desc: 'El cliente pide desde el celu; tu equipo lo ve ordenado, sin WhatsApp suelto.',
+    desc: 'Centralizá tus pedidos en un solo lugar y evitá confusiones, olvidos y clientes sin respuesta.',
     to: '/soluciones#recibir-pedidos',
   },
   {
     icon: 'fa-calendar-check',
     title: 'Agendar turnos',
-    desc: 'El cliente reserva solo; vos ves la agenda sin pelearte con el chat.',
+    desc: 'Automatizá las reservas y dejá que tus clientes elijan día y horario según tu disponibilidad.',
     to: '/soluciones#turneros',
   },
   {
     icon: 'fa-sitemap',
     title: 'Organizar el día a día',
-    desc: 'Ordenar lo que hoy está en Excel, papel o la cabeza de alguien.',
+    desc: 'Centralizá clientes, ventas, pedidos, tareas, stock y la información de tu negocio en un solo lugar.',
     to: '/soluciones#organizar-procesos',
   },
 ]
