@@ -9,6 +9,8 @@ import { PROJECT_CATEGORIES, ADDON_CATALOG, CARE_PLANS, formatPriceRange } from 
 import { suggestRecommendation, buildRecommendation, detectCategory } from '../../data/quoteRecommendation'
 import { LEAD_SCORE_META, SUGGESTED_ACTION_LABEL } from '../../data/leadScore'
 import NewQuoteModal from './NewQuoteModal'
+import ConnectionError from '../../components/ConnectionError/ConnectionError'
+import { isConnectionError } from '../../utils/apiError'
 
 const CATALOG = ADDON_CATALOG
 
@@ -61,6 +63,7 @@ export default function AdminQuotes() {
   const [toast, setToast]       = useState('')
   const [shareBusy, setShareBusy] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [offline, setOffline] = useState(false)
   const [discoveryDraft, setDiscoveryDraft] = useState({ scheduledAt: '', notes: '', done: false })
 
   // Wizard
@@ -136,7 +139,10 @@ export default function AdminQuotes() {
 
   const load = () => {
     setLoading(true)
-    api.get('/quotes').then(r => setQuotes(r.data)).finally(() => setLoading(false))
+    api.get('/quotes')
+      .then(r => { setQuotes(r.data); setOffline(false) })
+      .catch(err => setOffline(isConnectionError(err)))
+      .finally(() => setLoading(false))
   }
 
   /** Recién creada a mano: la dejamos arriba de la lista y seguimos directo al
@@ -553,6 +559,18 @@ export default function AdminQuotes() {
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
+  if (offline) {
+    return (
+      <AdminLayout title="Cotizaciones">
+        <ConnectionError
+          onRetry={load}
+          retrying={loading}
+          message="El panel no puede comunicarse con la API. Revisá que el backend esté levantado y volvé a intentar."
+        />
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout title="Cotizaciones">
       {toast && <div className="toast success">{toast}</div>}

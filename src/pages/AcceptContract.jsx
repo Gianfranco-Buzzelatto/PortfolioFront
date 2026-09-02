@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import api from '../hooks/useApi'
 import Seo from '../seo/Seo'
+import ConnectionError from '../components/ConnectionError/ConnectionError'
+import LoadingState from '../components/ConnectionError/LoadingState'
+import { isConnectionError } from '../utils/apiError'
+import { useSettings } from '../context/SettingsContext'
+import { whatsappHref } from '../utils/whatsapp'
 import './AcceptProposal.css'
 
 export default function AcceptContract() {
   const { token } = useParams()
   const navigate = useNavigate()
+  const settings = useSettings()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [clientName, setClientName] = useState('')
   const [email, setEmail] = useState('')
   const [agree, setAgree] = useState(false)
@@ -24,16 +32,19 @@ export default function AcceptContract() {
         if (!alive) return
         setData(res.data)
         setClientName(res.data.contract?.clientName || '')
+        setOffline(false)
+        setError('')
       })
       .catch((err) => {
         if (!alive) return
-        setError(err.response?.data?.message || 'No encontramos este contrato.')
+        if (isConnectionError(err)) setOffline(true)
+        else setError(err.response?.data?.message || 'No encontramos este contrato.')
       })
       .finally(() => {
         if (alive) setLoading(false)
       })
     return () => { alive = false }
-  }, [token])
+  }, [token, reloadKey])
 
   const accept = async () => {
     setSubmitting(true)
@@ -55,7 +66,25 @@ export default function AcceptContract() {
   if (loading) {
     return (
       <main className="accept-page">
-        <div className="container accept-page__box">Cargando contrato…</div>
+        <div className="container">
+          <LoadingState label="Cargando contrato…" />
+        </div>
+      </main>
+    )
+  }
+
+  if (offline && !data) {
+    return (
+      <main className="accept-page">
+        <Seo title="Contrato" path={`/contrato/${token}`} noindex />
+        <div className="container">
+          <ConnectionError
+            onRetry={() => setReloadKey((k) => k + 1)}
+            retrying={loading}
+            message="Tu contrato está guardado, pero en este momento no podemos mostrarlo. Es un problema técnico nuestro: probá de nuevo en unos minutos."
+            whatsappHref={whatsappHref(settings.phone, 'Hola Gianfranco, quise abrir el link del contrato y no carga.')}
+          />
+        </div>
       </main>
     )
   }

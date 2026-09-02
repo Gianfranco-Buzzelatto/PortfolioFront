@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
+import ConnectionError from '../../components/ConnectionError/ConnectionError'
+import { isConnectionError } from '../../utils/apiError'
 import {
   generateAgreementPDF,
   generateRevisionsPDF,
@@ -94,6 +96,7 @@ export default function AdminClients() {
   const [shareBusy, setShareBusy] = useState(false)
   const [updateDraft, setUpdateDraft] = useState('')
   const [checkIn, setCheckIn] = useState('')
+  const [offline, setOffline] = useState(false)
 
   const FICHE_FIELDS = [
     ['domain', 'Dominio'],
@@ -114,7 +117,10 @@ export default function AdminClients() {
 
   const load = () => {
     setLoading(true)
-    api.get('/clients').then(r => setClients(r.data)).finally(() => setLoading(false))
+    api.get('/clients')
+      .then(r => { setClients(r.data); setOffline(false) })
+      .catch(err => setOffline(isConnectionError(err)))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -295,6 +301,18 @@ export default function AdminClients() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  if (offline) {
+    return (
+      <AdminLayout title="Clientes">
+        <ConnectionError
+          onRetry={load}
+          retrying={loading}
+          message="El panel no puede comunicarse con la API. Revisá que el backend esté levantado y volvé a intentar."
+        />
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout title="Clientes">
       {toast && <div className="toast success">{toast}</div>}

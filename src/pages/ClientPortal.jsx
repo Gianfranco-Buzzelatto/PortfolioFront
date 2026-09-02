@@ -4,6 +4,9 @@ import api from '../hooks/useApi'
 import Seo from '../seo/Seo'
 import { whatsappHref } from '../utils/whatsapp'
 import { useSettings } from '../context/SettingsContext'
+import ConnectionError from '../components/ConnectionError/ConnectionError'
+import LoadingState from '../components/ConnectionError/LoadingState'
+import { isConnectionError } from '../utils/apiError'
 import './AcceptProposal.css'
 import './Portal.css'
 
@@ -28,6 +31,8 @@ export default function ClientPortal() {
   const [request, setRequest] = useState('')
   const [warrantyNote, setWarrantyNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [offline, setOffline] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -37,16 +42,19 @@ export default function ClientPortal() {
       .then((res) => {
         if (!alive) return
         setData(res.data)
+        setOffline(false)
+        setError('')
       })
       .catch((err) => {
         if (!alive) return
-        setError(err.response?.data?.message || 'No encontramos este portal.')
+        if (isConnectionError(err)) setOffline(true)
+        else setError(err.response?.data?.message || 'No encontramos este portal.')
       })
       .finally(() => {
         if (alive) setLoading(false)
       })
     return () => { alive = false }
-  }, [token])
+  }, [token, reloadKey])
 
   const sendWarranty = async () => {
     setSubmitting(true)
@@ -79,7 +87,25 @@ export default function ClientPortal() {
   if (loading) {
     return (
       <main className="accept-page">
-        <div className="container accept-page__box">Cargando portal…</div>
+        <div className="container">
+          <LoadingState label="Cargando portal…" />
+        </div>
+      </main>
+    )
+  }
+
+  if (offline && !data) {
+    return (
+      <main className="accept-page">
+        <Seo title="Portal del cliente" path={`/portal/${token}`} noindex />
+        <div className="container">
+          <ConnectionError
+            onRetry={() => setReloadKey((k) => k + 1)}
+            retrying={loading}
+            message="No podemos cargar el estado de tu proyecto en este momento. Es un problema técnico nuestro: probá de nuevo en unos minutos."
+            whatsappHref={whatsappHref(settings.phone, 'Hola Gianfranco, no me carga el portal del proyecto.')}
+          />
+        </div>
       </main>
     )
   }

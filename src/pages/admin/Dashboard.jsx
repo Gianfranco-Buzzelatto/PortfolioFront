@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
+import ConnectionError from '../../components/ConnectionError/ConnectionError'
+import { isConnectionError } from '../../utils/apiError'
 import './Dashboard.css'
 
 function StatCard({ icon, label, value, color, to }) {
@@ -24,13 +26,19 @@ export default function Dashboard() {
   const [quotes, setQuotes]     = useState([])
   const [clients, setClients]   = useState([])
   const [loading, setLoading]   = useState(true)
+  const [offline, setOffline]   = useState(false)
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
     Promise.all([api.get('/projects/admin/all'), api.get('/quotes'), api.get('/clients')])
-      .then(([p, q, c]) => { setProjects(p.data); setQuotes(q.data); setClients(c.data || []) })
-      .catch(() => {})
+      .then(([p, q, c]) => {
+        setProjects(p.data); setQuotes(q.data); setClients(c.data || [])
+        setOffline(false)
+      })
+      .catch((err) => setOffline(isConnectionError(err)))
       .finally(() => setLoading(false))
-  }, [])
+  }
+  useEffect(load, [])
 
   const pendingQuotes  = quotes.filter(q => q.status === 'pending').length
   const featuredCount  = projects.filter(p => p.featured).length
@@ -51,6 +59,12 @@ export default function Dashboard() {
     <AdminLayout title="Dashboard">
       {loading ? (
         <div className="dash-loading">Cargando...</div>
+      ) : offline ? (
+        <ConnectionError
+          onRetry={load}
+          retrying={loading}
+          message="El panel no puede comunicarse con la API. Revisá que el backend esté levantado y volvé a intentar."
+        />
       ) : (
         <>
           {/* Stats */}

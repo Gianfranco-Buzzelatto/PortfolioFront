@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../hooks/useApi'
 import Seo from '../seo/Seo'
+import ConnectionError from '../components/ConnectionError/ConnectionError'
+import LoadingState from '../components/ConnectionError/LoadingState'
+import { isConnectionError } from '../utils/apiError'
+import { useSettings } from '../context/SettingsContext'
+import { whatsappHref } from '../utils/whatsapp'
 import './AcceptProposal.css'
 
 const EMPTY = {
@@ -49,6 +54,9 @@ export default function ClientOnboarding() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [portalPath, setPortalPath] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const settings = useSettings()
 
   useEffect(() => {
     let alive = true
@@ -59,6 +67,8 @@ export default function ClientOnboarding() {
         if (!alive) return
         setMeta(res.data)
         setDone(Boolean(res.data.submitted))
+        setOffline(false)
+        setError('')
         if (res.data.onboarding) {
           setForm({
             ...EMPTY,
@@ -73,13 +83,14 @@ export default function ClientOnboarding() {
       })
       .catch((err) => {
         if (!alive) return
-        setError(err.response?.data?.message || 'Onboarding no disponible.')
+        if (isConnectionError(err)) setOffline(true)
+        else setError(err.response?.data?.message || 'Onboarding no disponible.')
       })
       .finally(() => {
         if (alive) setLoading(false)
       })
     return () => { alive = false }
-  }, [token])
+  }, [token, reloadKey])
 
   const setBrand = (key, value) => setForm((f) => ({ ...f, brand: { ...f.brand, [key]: value } }))
   const setContent = (key, value) => setForm((f) => ({ ...f, content: { ...f.content, [key]: value } }))
@@ -102,7 +113,25 @@ export default function ClientOnboarding() {
   if (loading) {
     return (
       <main className="accept-page">
-        <div className="container accept-page__box">Cargando onboarding…</div>
+        <div className="container">
+          <LoadingState label="Cargando onboarding…" />
+        </div>
+      </main>
+    )
+  }
+
+  if (offline && !meta) {
+    return (
+      <main className="accept-page">
+        <Seo title="Onboarding" path={`/onboarding/${token}`} noindex />
+        <div className="container">
+          <ConnectionError
+            onRetry={() => setReloadKey((k) => k + 1)}
+            retrying={loading}
+            message="No podemos cargar el formulario en este momento. Es un problema técnico nuestro: probá de nuevo en unos minutos y lo que ya hayas enviado sigue guardado."
+            whatsappHref={whatsappHref(settings.phone, 'Hola Gianfranco, no me carga el formulario de onboarding.')}
+          />
+        </div>
       </main>
     )
   }

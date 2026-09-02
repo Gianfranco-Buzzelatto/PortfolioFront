@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../hooks/useApi'
 import Seo from '../seo/Seo'
+import { isConnectionError } from '../utils/apiError'
 import './Login.css'
 
 export default function Login() {
@@ -22,7 +23,13 @@ export default function Login() {
       login(r.data.user, r.data.token)
       navigate('/admin')
     } catch (err) {
-      setError(err.response?.data?.message || 'Credenciales incorrectas')
+      // Sin esto, un backend caído se reportaba como "Credenciales incorrectas"
+      // y te mandaba a buscar el problema en el lugar equivocado.
+      if (isConnectionError(err)) {
+        setError('No pudimos conectar con el servidor. Revisá que el backend esté levantado y volvé a intentar en un momento.')
+      } else {
+        setError(err.response?.data?.message || 'Credenciales incorrectas')
+      }
     } finally {
       setLoading(false)
     }

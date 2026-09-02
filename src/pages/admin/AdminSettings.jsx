@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
+import ConnectionError from '../../components/ConnectionError/ConnectionError'
+import { isConnectionError } from '../../utils/apiError'
 import './AdminSettings.css'
 
 const EMPTY_ADMIN = { username: '', email: '', password: '' }
@@ -21,6 +23,7 @@ export default function AdminSettings() {
   const [showAdminPassword, setShowAdminPassword] = useState(false)
   const [creatingAdmin, setCreatingAdmin] = useState(false)
   const [adminError, setAdminError] = useState('')
+  const [offline, setOffline] = useState(false)
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -29,7 +32,8 @@ export default function AdminSettings() {
       .then((r) => setAdmins(Array.isArray(r.data) ? r.data : []))
       .catch(() => setAdmins([]))
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
     Promise.all([
       api.get('/settings').then((r) => {
         const s = r.data
@@ -47,8 +51,12 @@ export default function AdminSettings() {
         })
       }),
       loadAdmins(),
-    ]).finally(() => setLoading(false))
-  }, [])
+    ])
+      .then(() => setOffline(false))
+      .catch((err) => setOffline(isConnectionError(err)))
+      .finally(() => setLoading(false))
+  }
+  useEffect(load, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -95,6 +103,18 @@ export default function AdminSettings() {
   }
 
   if (loading) return <AdminLayout title="Configuración"><div style={{textAlign:'center',padding:'80px',color:'var(--gray-light)'}}>Cargando...</div></AdminLayout>
+
+  if (offline) {
+    return (
+      <AdminLayout title="Configuración del Portfolio">
+        <ConnectionError
+          onRetry={load}
+          retrying={loading}
+          message="El panel no puede comunicarse con la API. Revisá que el backend esté levantado y volvé a intentar."
+        />
+      </AdminLayout>
+    )
+  }
 
   return (
     <AdminLayout title="Configuración del Portfolio">

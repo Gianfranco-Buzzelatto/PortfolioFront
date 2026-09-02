@@ -4,6 +4,11 @@ import api from '../hooks/useApi'
 import Seo from '../seo/Seo'
 import { CARE_PLANS } from '../data/quoteCatalog2026'
 import { formatMoney } from '../utils/quotePDF'
+import ConnectionError from '../components/ConnectionError/ConnectionError'
+import LoadingState from '../components/ConnectionError/LoadingState'
+import { isConnectionError } from '../utils/apiError'
+import { useSettings } from '../context/SettingsContext'
+import { whatsappHref } from '../utils/whatsapp'
 import './AcceptProposal.css'
 
 const PLAN_LABEL = { base: 'Básico', media: 'Intermedio', premium: 'Premium' }
@@ -11,9 +16,12 @@ const PLAN_LABEL = { base: 'Básico', media: 'Intermedio', premium: 'Premium' }
 export default function AcceptProposal() {
   const { token } = useParams()
   const navigate = useNavigate()
+  const settings = useSettings()
   const [proposal, setProposal] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [selectedPlan, setSelectedPlan] = useState('media')
   const [clientName, setClientName] = useState('')
   const [email, setEmail] = useState('')
@@ -31,16 +39,21 @@ export default function AcceptProposal() {
         setSelectedPlan(res.data.selectedPlan || 'media')
         setClientName(res.data.clientName || '')
         setDone(Boolean(res.data.accepted))
+        setOffline(false)
+        setError('')
       })
       .catch((err) => {
         if (!alive) return
-        setError(err.response?.data?.message || 'No encontramos esta propuesta.')
+        // Sin esta distinción le decíamos "no encontramos esta propuesta" a un
+        // cliente cuya propuesta existe y sólo estaba el backend caído.
+        if (isConnectionError(err)) setOffline(true)
+        else setError(err.response?.data?.message || 'No encontramos esta propuesta.')
       })
       .finally(() => {
         if (alive) setLoading(false)
       })
     return () => { alive = false }
-  }, [token])
+  }, [token, reloadKey])
 
   const accept = async () => {
     setSubmitting(true)
@@ -64,7 +77,25 @@ export default function AcceptProposal() {
   if (loading) {
     return (
       <main className="accept-page">
-        <div className="container accept-page__box">Cargando propuesta…</div>
+        <div className="container">
+          <LoadingState label="Cargando propuesta…" />
+        </div>
+      </main>
+    )
+  }
+
+  if (offline && !proposal) {
+    return (
+      <main className="accept-page">
+        <Seo title="Propuesta" path={`/propuesta/${token}`} noindex />
+        <div className="container">
+          <ConnectionError
+            onRetry={() => setReloadKey((k) => k + 1)}
+            retrying={loading}
+            message="Tu propuesta está guardada, pero en este momento no podemos mostrarla. Es un problema técnico nuestro: probá de nuevo en unos minutos y el link va a seguir funcionando."
+            whatsappHref={whatsappHref(settings.phone, 'Hola Gianfranco, quise abrir el link de la propuesta y no carga.')}
+          />
+        </div>
       </main>
     )
   }

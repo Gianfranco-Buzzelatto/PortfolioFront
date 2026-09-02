@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from './AdminLayout'
 import api from '../../hooks/useApi'
+import ConnectionError from '../../components/ConnectionError/ConnectionError'
+import { isConnectionError } from '../../utils/apiError'
 import './AdminProjects.css'
 
 const EMPTY = {
@@ -23,6 +25,7 @@ export default function AdminProjects() {
   const [saving, setSaving]     = useState(false)
   const [toast, setToast]       = useState({ msg: '', type: '' })
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [offline, setOffline] = useState(false)
 
   const notify = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -31,7 +34,10 @@ export default function AdminProjects() {
 
   const load = () => {
     setLoading(true)
-    api.get('/projects/admin/all').then(r => setProjects(r.data)).finally(() => setLoading(false))
+    api.get('/projects/admin/all')
+      .then(r => { setProjects(r.data); setOffline(false) })
+      .catch(err => setOffline(isConnectionError(err)))
+      .finally(() => setLoading(false))
   }
   useEffect(load, [])
 
@@ -93,6 +99,12 @@ export default function AdminProjects() {
       {/* Table */}
       {loading ? (
         <div style={{textAlign:'center', padding:'60px', color:'var(--gray-light)'}}>Cargando...</div>
+      ) : offline ? (
+        <ConnectionError
+          onRetry={load}
+          retrying={loading}
+          message="El panel no puede comunicarse con la API. Revisá que el backend esté levantado y volvé a intentar."
+        />
       ) : projects.length === 0 ? (
         <div className="admin-empty">
           <i className="fas fa-folder-open" />

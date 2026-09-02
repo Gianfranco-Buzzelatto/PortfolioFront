@@ -16,6 +16,7 @@ import {
   PRESENCE_OPTIONS,
 } from '../data/quoteBrief'
 import { scrollToId } from '../components/ScrollToHash'
+import { isConnectionError } from '../utils/apiError'
 import Seo from '../seo/Seo'
 import './Quote.css'
 
@@ -182,8 +183,15 @@ export default function Quote() {
       })
       setSubmitted(true)
     } catch (err) {
-      const msg = err.response?.data?.message
-      setSubmitError(msg || 'No pude enviar el formulario ahora. Probá de nuevo o escribinme por WhatsApp.')
+      if (isConnectionError(err)) {
+        // Los datos siguen en el form: conviene decirlo para que no lo abandone.
+        setSubmitError(
+          'No pudimos conectar con el servidor. Es un problema técnico nuestro: no perdiste nada de lo que cargaste. Probá de nuevo en un momento o escribime por WhatsApp.'
+        )
+      } else {
+        const msg = err.response?.data?.message
+        setSubmitError(msg || 'No pude enviar el formulario ahora. Probá de nuevo o escribinme por WhatsApp.')
+      }
     } finally {
       setSubmitting(false)
     }
