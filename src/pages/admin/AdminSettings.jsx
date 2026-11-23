@@ -14,6 +14,7 @@ export default function AdminSettings() {
     github: '', linkedin: '',
     heroTexts: ['', '', ''],
     skills: '',
+    maintenance: { enabled: false, title: '', message: '' },
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -24,6 +25,7 @@ export default function AdminSettings() {
   const [creatingAdmin, setCreatingAdmin] = useState(false)
   const [adminError, setAdminError] = useState('')
   const [offline, setOffline] = useState(false)
+  const [togglingMaint, setTogglingMaint] = useState(false)
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -48,6 +50,11 @@ export default function AdminSettings() {
           linkedin:  s.linkedin  || '',
           heroTexts: s.heroTexts?.length ? [...s.heroTexts, '', '', ''].slice(0, 3) : ['', '', ''],
           skills:    s.skills?.join(', ') || '',
+          maintenance: {
+            enabled: Boolean(s.maintenance?.enabled),
+            title:   s.maintenance?.title   || '',
+            message: s.maintenance?.message || '',
+          },
         })
       }),
       loadAdmins(),
@@ -59,6 +66,25 @@ export default function AdminSettings() {
   useEffect(load, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const setMaint = (k, v) => setForm(f => ({ ...f, maintenance: { ...f.maintenance, [k]: v } }))
+
+  /* El interruptor se guarda solo: si estás apagando el sitio a las apuradas,
+     no querés depender de acordarte de apretar "Guardar" abajo de todo. */
+  const toggleMaintenance = async () => {
+    const next = { ...form.maintenance, enabled: !form.maintenance.enabled }
+    setForm(f => ({ ...f, maintenance: next }))
+    setTogglingMaint(true)
+    try {
+      await api.put('/settings', { maintenance: next })
+      notify(next.enabled ? 'Mantenimiento activado' : 'Mantenimiento desactivado')
+    } catch {
+      setForm(f => ({ ...f, maintenance: { ...next, enabled: !next.enabled } }))
+      notify('No pude cambiar el mantenimiento')
+    } finally {
+      setTogglingMaint(false)
+    }
+  }
 
   const setHero = (i, v) => setForm(f => {
     const t = [...f.heroTexts]
@@ -121,6 +147,56 @@ export default function AdminSettings() {
       {toast && <div className="toast success">{toast}</div>}
 
       <div className="settings-layout">
+        {/* Mantenimiento */}
+        <div className={`settings-card maint-card ${form.maintenance.enabled ? 'maint-card--on' : ''}`}>
+          <h2 className="settings-card__title"><i className="fas fa-screwdriver-wrench"/> Modo mantenimiento</h2>
+
+          <div className="maint-toggle">
+            <div>
+              <p className="maint-toggle__state">
+                {form.maintenance.enabled ? 'Activo: los visitantes ven el cartel' : 'Inactivo: el sitio se ve normal'}
+              </p>
+              <p className="maint-toggle__hint">
+                El admin y los links de propuesta, contrato, onboarding y portal siguen funcionando.
+                Vos vas a seguir viendo el sitio porque estás logueado.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={`btn btn-sm ${form.maintenance.enabled ? 'btn-primary' : 'btn-outline'}`}
+              onClick={toggleMaintenance}
+              disabled={togglingMaint}
+            >
+              <i className={`fas ${form.maintenance.enabled ? 'fa-toggle-on' : 'fa-toggle-off'}`} />
+              {' '}{form.maintenance.enabled ? 'Desactivar' : 'Activar'}
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Título del cartel</label>
+            <input
+              className="form-control"
+              value={form.maintenance.title}
+              onChange={e => setMaint('title', e.target.value)}
+              placeholder="Estamos en mantenimiento"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Mensaje</label>
+            <textarea
+              className="form-control"
+              rows={3}
+              value={form.maintenance.message}
+              onChange={e => setMaint('message', e.target.value)}
+              placeholder="Estamos haciendo mejoras en el sitio. Volvé en un rato o escribinos por WhatsApp."
+            />
+            <p className="maint-toggle__hint">
+              El interruptor se aplica al instante; los textos se guardan con el botón de abajo.
+            </p>
+          </div>
+        </div>
+
         {/* Perfil */}
         <div className="settings-card">
           <h2 className="settings-card__title"><i className="fas fa-user"/> Información Personal</h2>

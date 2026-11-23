@@ -1,0 +1,97 @@
+/* z-index por encima de la intro (9999) para que no queden compitiendo. */
+.maint {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #050505;
+  overflow-y: auto;
+  animation: maintIn 0.25s ease-out both;
+}
+
+@keyframes maintIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.maint__card {
+  width: 100%;
+  max-width: 520px;
+  padding: 44px 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.maint__logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+.maint__dot { color: var(--primary); }
+
+.maint__icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--primary-muted);
+  color: var(--primary);
+  font-size: 1.4rem;
+}
+
+.maint__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.maint__text {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+/* Aviso para el dueño logueado: el sitio se ve normal, pero el visitante no. */
+.maint-badge {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-muted);
+  border: 1px solid rgba(232, 20, 30, 0.35);
+  color: var(--text);
+  font-size: 0.76rem;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.maint-badge i { color: var(--primary); }
+
+@media (max-width: 560px) {
+  .maint__card { padding: 36px 22px; }
+  .maint__title { font-size: 1.3rem; }
+  .maint-badge { left: 12px; bottom: 12px; font-size: 0.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maint { animation: none; }
+}

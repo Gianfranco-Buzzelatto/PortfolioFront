@@ -27,6 +27,7 @@ import ProjectDemo from './pages/demos/ProjectDemo'
 import ScrollToHash from './components/ScrollToHash'
 import WhatsAppFloat from './components/WhatsAppFloat'
 import SmoothScroll from './components/SmoothScroll'
+import MaintenanceGate from './components/Maintenance/MaintenanceGate'
 
 const adminEnabled = import.meta.env.VITE_ENABLE_ADMIN === 'true'
 
@@ -63,39 +64,41 @@ export default function App() {
         <SmoothScroll>
           <BrowserRouter>
             <ScrollToHash />
-            <Routes>
-              <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-              <Route path="/soluciones" element={<PublicLayout><Solutions /></PublicLayout>} />
-              <Route
-                path="/demos"
-                element={DEMOS_ENABLED ? <PublicLayout><Demos /></PublicLayout> : <Navigate to="/proyectos" replace />}
-              />
-              <Route path="/proyectos" element={<PublicLayout><Projects /></PublicLayout>} />
-              <Route path="/proyectos/:slug" element={<PublicLayout><ProjectDetail /></PublicLayout>} />
-              <Route path="/cuidado" element={<PublicLayout><Care /></PublicLayout>} />
-              <Route path="/cotizar" element={<PublicLayout><Quote /></PublicLayout>} />
-              <Route path="/propuesta/:token" element={<PublicLayout><AcceptProposal /></PublicLayout>} />
-              <Route path="/contrato/:token" element={<PublicLayout><AcceptContract /></PublicLayout>} />
-              <Route path="/onboarding/:token" element={<PublicLayout><ClientOnboarding /></PublicLayout>} />
-              <Route path="/portal/:token" element={<PublicLayout><ClientPortal /></PublicLayout>} />
-              <Route
-                path="/demo/:slug"
-                element={DEMOS_ENABLED ? <ProjectDemo /> : <Navigate to="/proyectos" replace />}
-              />
+            <MaintenanceGate>
+              <Routes>
+                <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+                <Route path="/soluciones" element={<PublicLayout><Solutions /></PublicLayout>} />
+                <Route
+                  path="/demos"
+                  element={DEMOS_ENABLED ? <PublicLayout><Demos /></PublicLayout> : <Navigate to="/proyectos" replace />}
+                />
+                <Route path="/proyectos" element={<PublicLayout><Projects /></PublicLayout>} />
+                <Route path="/proyectos/:slug" element={<PublicLayout><ProjectDetail /></PublicLayout>} />
+                <Route path="/cuidado" element={<PublicLayout><Care /></PublicLayout>} />
+                <Route path="/cotizar" element={<PublicLayout><Quote /></PublicLayout>} />
+                <Route path="/propuesta/:token" element={<PublicLayout><AcceptProposal /></PublicLayout>} />
+                <Route path="/contrato/:token" element={<PublicLayout><AcceptContract /></PublicLayout>} />
+                <Route path="/onboarding/:token" element={<PublicLayout><ClientOnboarding /></PublicLayout>} />
+                <Route path="/portal/:token" element={<PublicLayout><ClientPortal /></PublicLayout>} />
+                <Route
+                  path="/demo/:slug"
+                  element={DEMOS_ENABLED ? <ProjectDemo /> : <Navigate to="/proyectos" replace />}
+                />
 
-              {adminEnabled && (
-                <>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
-                  <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
-                  <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
-                  <Route path="/admin/clientes" element={<PrivateRoute><AdminClients /></PrivateRoute>} />
-                  <Route path="/admin/configuracion" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
-                </>
-              )}
+                {adminEnabled && (
+                  <>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+                    <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
+                    <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
+                    <Route path="/admin/clientes" element={<PrivateRoute><AdminClients /></PrivateRoute>} />
+                    <Route path="/admin/configuracion" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
+                  </>
+                )}
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </MaintenanceGate>
           </BrowserRouter>
         </SmoothScroll>
       </SettingsProvider>
