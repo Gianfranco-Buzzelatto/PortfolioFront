@@ -89,6 +89,9 @@ export default function Login() {
                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden />
               </button>
             </div>
+            <div className="login-forgot">
+              <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+            </div>
           </div>
 
           <button

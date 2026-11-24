@@ -18,6 +18,8 @@ import AcceptContract from './pages/AcceptContract'
 import ClientOnboarding from './pages/ClientOnboarding'
 import ClientPortal from './pages/ClientPortal'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminProjects from './pages/admin/AdminProjects'
 import AdminQuotes from './pages/admin/AdminQuotes'
@@ -88,6 +90,8 @@ export default function App() {
                 {adminEnabled && (
                   <>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password/:token" element={<ResetPassword />} />
                     <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
                     <Route path="/admin/proyectos" element={<PrivateRoute><AdminProjects /></PrivateRoute>} />
                     <Route path="/admin/cotizaciones" element={<PrivateRoute><AdminQuotes /></PrivateRoute>} />
